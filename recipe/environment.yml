@@ -9,7 +9,7 @@ dependencies:
   - jupyterlab
   - jupyter
   - conda-devenv
-pip:
-  - pyswmm
+  - pip:
+    - pyswmm
 prefix: /home/davidm/anaconda3/envs/waterlab_mpc
 
