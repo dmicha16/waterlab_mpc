@@ -4,12 +4,6 @@ channels:
 dependencies:
   - python=3.8
   - pandas
-  - matplotlib
-  - ipykernel
   - jupyterlab
-  - jupyter
-  - conda-devenv
-  - pip:
-    - pyswmm
 prefix: /home/davidm/anaconda3/envs/waterlab_mpc
 
