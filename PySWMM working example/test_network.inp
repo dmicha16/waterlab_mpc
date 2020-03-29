@@ -1,0 +1,374 @@
+[TITLE]
+;;Project Title/Notes
+
+[OPTIONS]
+;;Option             Value
+FLOW_UNITS           LPS
+INFILTRATION         MODIFIED_GREEN_AMPT
+FLOW_ROUTING         DYNWAVE
+LINK_OFFSETS         DEPTH
+MIN_SLOPE            0
+ALLOW_PONDING        NO
+SKIP_STEADY_STATE    NO
+
+START_DATE           03/13/2019
+START_TIME           00:00:00
+REPORT_START_DATE    03/13/2019
+REPORT_START_TIME    00:00:00
+END_DATE             03/18/2019
+END_TIME             06:00:00
+SWEEP_START          01/01
+SWEEP_END            12/31
+DRY_DAYS             0
+REPORT_STEP          00:01:00
+WET_STEP             00:01:00
+DRY_STEP             01:00:00
+ROUTING_STEP         0:00:01 
+RULE_STEP            00:00:00
+
+INERTIAL_DAMPING     PARTIAL
+NORMAL_FLOW_LIMITED  BOTH
+FORCE_MAIN_EQUATION  H-W
+VARIABLE_STEP        0.75
+LENGTHENING_STEP     0
+MIN_SURFAREA         1.167
+MAX_TRIALS           8
+HEAD_TOLERANCE       0.0015
+SYS_FLOW_TOL         5
+LAT_FLOW_TOL         5
+MINIMUM_STEP         0.5
+THREADS              1
+
+[EVAPORATION]
+;;Data Source    Parameters
+;;-------------- ----------------
+CONSTANT         0.0
+DRY_ONLY         NO
+
+[RAINGAGES]
+;;Name           Format    Interval SCF      Source    
+;;-------------- --------- ------ ------ ----------
+Gage1            INTENSITY 1:00     1.0      TIMESERIES RG1             
+
+[SUBCATCHMENTS]
+;;Name           Rain Gage        Outlet           Area     %Imperv  Width    %Slope   CurbLen  SnowPack        
+;;-------------- ---------------- ---------------- -------- -------- -------- -------- -------- ----------------
+S1               Gage1            J1               5        25       500      0.5      0                        
+S2               Gage1            J1               5        25       500      0.5      0                        
+
+[SUBAREAS]
+;;Subcatchment   N-Imperv   N-Perv     S-Imperv   S-Perv     PctZero    RouteTo    PctRouted 
+;;-------------- ---------- ---------- ---------- ---------- ---------- ---------- ----------
+S1               0.01       0.1        0.05       0.05       25         OUTLET    
+S2               0.01       0.1        0.05       0.05       25         OUTLET    
+
+[INFILTRATION]
+;;Subcatchment   Suction    Ksat       IMD       
+;;-------------- ---------- ---------- ----------
+S1               3.5        0.5        0.26      
+S2               3.5        0.5        0.26      
+
+[JUNCTIONS]
+;;Name           Elevation  MaxDepth   InitDepth  SurDepth   Aponded   
+;;-------------- ---------- ---------- ---------- ---------- ----------
+J1               1          4          0          0          0         
+J2               4          4          0          0          0         
+J3               3          4          0          0          0         
+J4               2          4          0          0          0         
+J5               1          4          0          0          0         
+J6               0          4          0          0          0         
+J7               0.4        4          0          0          0         
+J8               0.3        4          0          0          0         
+J9               0.2        4          0          0          0         
+J10              0.1        4          0          0          0         
+J11              0          4          0          0          0         
+
+[OUTFALLS]
+;;Name           Elevation  Type       Stage Data       Gated    Route To        
+;;-------------- ---------- ---------- ---------------- -------- ----------------
+Out1             0          FREE                        NO                       
+
+[STORAGE]
+;;Name           Elev.    MaxDepth   InitDepth  Shape      Curve Name/Params            N/A      Fevap    Psi      Ksat     IMD     
+;;-------------- -------- ---------- ----------- ---------- ---------------------------- -------- --------          -------- --------
+Tank1            0        1          0          FUNCTIONAL 100       0         0        0        0       
+Tank2            0        0.8        0          FUNCTIONAL 80        0         0        0        0       
+
+[CONDUITS]
+;;Name           From Node        To Node          Length     Roughness  InOffset   OutOffset  InitFlow   MaxFlow   
+;;-------------- ---------------- ---------------- ---------- ---------- ---------- ---------- ---------- ----------
+C1               J1               Tank1            600        0.01       0          0          0          0         
+C2               J2               J3               500        0.01       0          0          0          0         
+C3               J3               J4               300        0.01       0          0          0          0         
+C4               J4               J5               300        0.01       0          0          0          0         
+C5               J5               J6               500        0.01       0          0          0          0         
+C6               J6               Tank2            10         0.01       0          0          0          0         
+C7               J7               J8               400        0.01       0          0          0          0         
+C8               J8               J9               400        0.01       0          0          0          0         
+C9               J9               J10              400        0.01       0          0          0          0         
+C10              J10              J11              400        0.01       0          0          0          0         
+C11              J11              Out1             10         0.01       0          0          0          0         
+
+[PUMPS]
+;;Name           From Node        To Node          Pump Curve       Status   Sartup Shutoff 
+;;-------------- ---------------- ---------------- ---------------- ------ -------- --------
+Pump1            Tank1            J2               pumpcurve1       OFF      0        0       
+Pump2            Tank2            J7               pumpcurve1       OFF      0        0       
+
+[XSECTIONS]
+;;Link           Shape        Geom1            Geom2      Geom3      Geom4      Barrels    Culvert   
+;;-------------- ------------ ---------------- ---------- ---------- ---------- ---------- ----------
+C1               RECT_OPEN    1                1          0          0          1                    
+C2               RECT_OPEN    1                2          0          0          1                    
+C3               RECT_OPEN    1                2          0          0          1                    
+C4               RECT_OPEN    1                2          0          0          1                    
+C5               RECT_OPEN    1                2          0          0          1                    
+C6               RECT_OPEN    1                1          0          0          1                    
+C7               RECT_OPEN    1                1          0          0          1                    
+C8               RECT_OPEN    1                1          0          0          1                    
+C9               RECT_OPEN    1                1          0          0          1                    
+C10              RECT_OPEN    1                1          0          0          1                    
+C11              RECT_OPEN    1                1          0          0          1                    
+
+[INFLOWS]
+;;Node           Constituent      Time Series      Type     Mfactor  Sfactor  Baseline Pattern
+;;-------------- ---------------- ---------------- -------- -------- -------- -------- --------
+J1               FLOW             Inflow           FLOW     1.0      1.0              
+
+[CURVES]
+;;Name           Type       X-Value    Y-Value   
+;;-------------- ---------- ---------- ----------
+Pumpcurve1       Pump1      8          50        
+
+[TIMESERIES]
+;;Name           Date       Time       Value     
+;;-------------- ---------- ---------- ----------
+Inflow                      01:00      25        
+Inflow                      02:00      0         
+Inflow                      03:00      0         
+Inflow                      04:00      25        
+Inflow                      05:00      25        
+Inflow                      06:00      0         
+Inflow                      07:00      0         
+Inflow                      08:00      0         
+Inflow                      09:00      0         
+Inflow                      10:00      0         
+Inflow                      11:00      25        
+Inflow                      12:00      25        
+Inflow                      13:00      0         
+Inflow                      14:00      0         
+Inflow                      15:00      0         
+Inflow                      16:00      0         
+Inflow                      17:00      0         
+Inflow                      18:00      25        
+Inflow                      19:00      25        
+Inflow                      20:00      0         
+Inflow                      21:00      0         
+Inflow                      22:00      0         
+Inflow                      23:00      0         
+Inflow                      24         0         
+Inflow                      25         25        
+Inflow                      26         25        
+Inflow                      27         0         
+Inflow                      28         0         
+Inflow                      29         0         
+Inflow                      30         0         
+Inflow                      31         0         
+Inflow                      32         25        
+Inflow                      33         25        
+Inflow                      34         0         
+Inflow                      35         0         
+Inflow                      36         0         
+Inflow                      37         0         
+Inflow                      38         0         
+Inflow                      39         25        
+Inflow                      40         25        
+Inflow                      41         0         
+Inflow                      42         0         
+Inflow                      43         0         
+Inflow                      44         0         
+Inflow                      45         0         
+Inflow                      46         25        
+Inflow                      47         25        
+Inflow                      48         0         
+Inflow                      49         0         
+Inflow                      50         0         
+Inflow                      51         0         
+Inflow                      52         0         
+Inflow                      53         25        
+Inflow                      54         25        
+Inflow                      55         0         
+Inflow                      56         0         
+Inflow                      57         25        
+Inflow                      58         0         
+Inflow                      59         0         
+Inflow                      60         25        
+Inflow                      61         25        
+Inflow                      62         0         
+Inflow                      63         0         
+Inflow                      64         25        
+Inflow                      65         0         
+Inflow                      66         0         
+Inflow                      67         25        
+Inflow                      68         25        
+Inflow                      69         0         
+Inflow                      70         0         
+Inflow                      71         25        
+Inflow                      72         0         
+Inflow                      73         0         
+Inflow                      74         25        
+Inflow                      75         25        
+Inflow                      76         0         
+Inflow                      77         0         
+Inflow                      78         25        
+Inflow                      79         0         
+Inflow                      80         0         
+Inflow                      81         25        
+Inflow                      82         25        
+Inflow                      83         0         
+Inflow                      84         0         
+Inflow                      85         25        
+Inflow                      86         0         
+Inflow                      87         0         
+Inflow                      88         25        
+Inflow                      89         25        
+Inflow                      90         0         
+Inflow                      91         0         
+Inflow                      92         25        
+Inflow                      93         0         
+Inflow                      94         0         
+Inflow                      95         10        
+Inflow                      96         10        
+Inflow                      97         0         
+Inflow                      98         0         
+Inflow                      99         10        
+Inflow                      100        0         
+Inflow                      101        0         
+Inflow                      102        10        
+Inflow                      103        10        
+Inflow                      104        0         
+Inflow                      105        0         
+Inflow                      106        10        
+Inflow                      107        0         
+Inflow                      108        0         
+Inflow                      109        10        
+Inflow                      110        10        
+Inflow                      111        0         
+Inflow                      112        0         
+Inflow                      113        10        
+Inflow                      114        0         
+Inflow                      115        0         
+Inflow                      116        10        
+Inflow                      117        10        
+Inflow                      118        0         
+Inflow                      119        0         
+Inflow                      120        10        
+Inflow                      121        0         
+Inflow                      122        0         
+Inflow                      123        25        
+Inflow                      124        25        
+Inflow                      125        0         
+Inflow                      126        0         
+Inflow                      127        25        
+Inflow                      128        0         
+Inflow                      129        0         
+Inflow                      130        25        
+Inflow                      131        25        
+Inflow                      132        0         
+;
+RG1                         01:00      0         
+RG1                         02:00      0         
+RG1                         03:00      0         
+RG1                         04:00      0         
+RG1                         05:00      0         
+RG1                         06:00      0         
+RG1                         07:00      0         
+RG1                         08:00      0         
+RG1                         09:00      0         
+RG1                         10:00      0         
+RG1                         11:00      0         
+RG1                         12:00      0         
+RG1                         13:00      0         
+RG1                         14:00      0         
+RG1                         15:00      0         
+RG1                         16:00      0         
+RG1                         17:00      0         
+RG1                         18:00      0         
+RG1                         19:00      0         
+RG1                         20:00      0         
+RG1                         21:00      0         
+RG1                         22:00      0         
+RG1                         23:00      0         
+RG1                         24:00      0         
+RG1                         30:00      0         
+RG1                         35:00      0         
+RG1                         36:00      0         
+RG1                         37:00      0         
+RG1                         38:00      0         
+RG1                         39:00      0         
+RG1                         40:00      0         
+RG1                         45:00      0         
+RG1                         46:00      0         
+RG1                         47:00      0         
+RG1                         48:00      0         
+RG1                         49:00      0         
+RG1                         50:00      0         
+RG1                         55:00      0         
+RG1                         60:00      0         
+RG1                         61:00      0         
+RG1                         62:00      0         
+
+[REPORT]
+;;Reporting Options
+SUBCATCHMENTS ALL
+NODES ALL
+LINKS ALL
+
+[TAGS]
+
+[MAP]
+DIMENSIONS 0.000 0.000 10000.000 10000.000
+Units      None
+
+[COORDINATES]
+;;Node           X-Coord            Y-Coord           
+;;-------------- ------------------ ------------------
+J1               -715.072           4884.488          
+J2               1727.173           6061.606          
+J3               2266.227           5808.581          
+J4               2739.274           5533.553          
+J5               3355.336           5192.519          
+J6               3949.395           4873.487          
+J7               6116.612           5500.550          
+J8               6930.693           5346.535          
+J9               7601.760           5192.519          
+J10              8140.814           5016.502          
+J11              8789.879           4818.482          
+Out1             9603.960           4818.482          
+Tank1            462.046            4884.488          
+Tank2            5005.501           4873.487          
+
+[VERTICES]
+;;Link           X-Coord            Y-Coord           
+;;-------------- ------------------ ------------------
+
+[Polygons]
+;;Subcatchment   X-Coord            Y-Coord           
+;;-------------- ------------------ ------------------
+S1               -2427.576          6894.023          
+S1               -2427.576          6993.033          
+S1               -931.426           7070.040          
+S1               -975.431           5155.849          
+S1               -2482.582          5210.854          
+S1               -2438.577          7026.036          
+S2               -2679.868          4134.213          
+S2               -1150.715          4167.217          
+S2               -1205.721          2462.046          
+S2               -2690.869          2473.047          
+S2               -2668.867          4145.215          
+
+[SYMBOLS]
+;;Gage           X-Coord            Y-Coord           
+;;-------------- ------------------ ------------------
+Gage1            -2101.210          4554.455          
+
