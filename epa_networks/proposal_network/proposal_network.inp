@@ -82,7 +82,7 @@ Out1             85         FREE                        NO
 [STORAGE]
 ;;Name           Elev.    MaxDepth   InitDepth  Shape      Curve Name/Params            N/A      Fevap    Psi      Ksat     IMD     
 ;;-------------- -------- ---------- ----------- ---------- ---------------------------- -------- --------          -------- --------
-Tanks1           90       4          0          FUNCTIONAL 1000      0         0        0        0       
+Tanks1           90       1          0          FUNCTIONAL 100       0         0        0        0       
 
 [CONDUITS]
 ;;Name           From Node        To Node          Length     Roughness  InOffset   OutOffset  InitFlow   MaxFlow   
@@ -92,17 +92,12 @@ C1               J1               Tanks1           400        0.01       0      
 [PUMPS]
 ;;Name           From Node        To Node          Pump Curve       Status   Sartup Shutoff 
 ;;-------------- ---------------- ---------------- ---------------- ------ -------- --------
-P1               Tanks1           Out1             simplecurve      OFF      0        0       
+P1               Tanks1           Out1             *                OFF      0        0       
 
 [XSECTIONS]
 ;;Link           Shape        Geom1            Geom2      Geom3      Geom4      Barrels    Culvert   
 ;;-------------- ------------ ---------------- ---------- ---------- ---------- ---------- ----------
 C1               CIRCULAR     1                0          0          0          1                    
-
-[CURVES]
-;;Name           Type       X-Value    Y-Value   
-;;-------------- ---------- ---------- ----------
-simplecurve      Pump1      5          25        
 
 [TIMESERIES]
 ;;Name           Date       Time       Value     
