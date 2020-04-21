@@ -2,7 +2,7 @@
   EPA STORM WATER MANAGEMENT MODEL - VERSION 5.1 (Build 5.3.0.dev0)
   --------------------------------------------------------------
 
-  This is a dummy network that has a pump, a storage unit and two subcatchments 
+  This is a dummy network that has a pump, a storage unit and two subcatchments 
   
   
   *********************************************************
@@ -53,13 +53,13 @@
   Groundwater Inflow .......         0.000         0.000
   RDII Inflow ..............         0.000         0.000
   External Inflow ..........         0.000         0.000
-  External Outflow .........         0.000         0.004
-  Flooding Loss ............         0.001         0.006
+  External Outflow .........         0.005         0.048
+  Flooding Loss ............         0.000         0.000
   Evaporation Loss .........         0.000         0.000
   Exfiltration Loss ........         0.000         0.000
   Initial Stored Volume ....         0.000         0.000
-  Final Stored Volume ......         0.010         0.102
-  Continuity Error (%) .....        -0.521
+  Final Stored Volume ......         0.006         0.063
+  Continuity Error (%) .....        -0.084
   
   
   ********************************
@@ -103,7 +103,7 @@
   ---------------------------------------------------------------------------------
   J1                   JUNCTION     0.03     0.04    95.04     0  03:00        0.04
   Out1                 OUTFALL      0.00     0.00    85.00     0  00:00        0.00
-  Tanks1               STORAGE      0.44     1.00    91.00     0  05:32        1.00
+  Tanks1               STORAGE      0.34     0.66    90.66     0  05:11        0.66
   
   
   *******************
@@ -117,22 +117,15 @@
   Node                 Type           LPS      LPS  days hr:min    10^6 ltr    10^6 ltr     Percent
   -------------------------------------------------------------------------------------------------
   J1                   JUNCTION     11.01    11.01     0  03:00       0.112       0.112       0.000
-  Out1                 OUTFALL       0.00     3.63     0  05:33           0     0.00417       0.000
-  Tanks1               STORAGE       0.00    11.06     0  03:02           0        0.11      -0.442
+  Out1                 OUTFALL       0.00     5.00     0  03:19           0      0.0484       0.000
+  Tanks1               STORAGE       0.00    11.06     0  03:02           0        0.11      -0.000
   
   
   *********************
   Node Flooding Summary
   *********************
   
-  Flooding refers to all water that overflows a node, whether it ponds or not.
-  --------------------------------------------------------------------------
-                                                             Total   Maximum
-                                 Maximum   Time of Max       Flood    Ponded
-                        Hours       Rate    Occurrence      Volume    Volume
-  Node                 Flooded       LPS   days hr:min    10^6 ltr   1000 m3
-  --------------------------------------------------------------------------
-  Tanks1                  0.78      4.72      0  05:14       0.006     0.000
+  No nodes were flooded.
   
   
   **********************
@@ -144,7 +137,7 @@
                           Volume    Pcnt  Pcnt  Pcnt        Volume    Pcnt     Occurrence    Outflow
   Storage Unit           1000 m3    Full  Loss  Loss       1000 m3    Full    days hr:min        LPS
   --------------------------------------------------------------------------------------------------
-  Tanks1                   0.044      44     0     0         0.100     100       0  05:13       3.63
+  Tanks1                   0.034      34     0     0         0.066      66       0  05:11       5.00
   
   
   ***********************
@@ -156,9 +149,9 @@
                          Freq      Flow      Flow      Volume
   Outfall Node           Pcnt       LPS       LPS    10^6 ltr
   -----------------------------------------------------------
-  Out1                   7.64      2.55      3.63       0.004
+  Out1                  44.86      5.00      5.00       0.048
   -----------------------------------------------------------
-  System                 7.64      2.55      3.63       0.004
+  System                44.86      5.00      5.00       0.048
   
   
   ********************
@@ -171,7 +164,7 @@
   Link                 Type          LPS  days hr:min     m/sec    Flow   Depth
   -----------------------------------------------------------------------------
   C1                   CONDUIT     11.06     0  03:02      1.02    0.00    0.04
-  P1                   PUMP         3.63     0  05:33                          
+  P1                   PUMP         5.00     0  03:19              5.00
   
   
   *************************
@@ -190,9 +183,9 @@
                         Percent   Number of      Flow      Flow      Flow    Volume     Usage    Pump Curve
   Pump                 Utilized   Start-Ups       LPS       LPS       LPS  10^6 ltr     Kw-hr    Low   High
   ---------------------------------------------------------------------------------------------------------
-  P1                       7.64           1      0.00      2.55      3.63     0.004      0.07    0.0    0.0
+  P1                      44.86           1      0.00      5.00      5.00     0.048      0.74    0.0  100.0
   
 
-  Analysis begun on:  Wed Apr  1 16:11:52 2020
-  Analysis ended on:  Wed Apr  1 16:11:53 2020
+  Analysis begun on:  Tue Apr 21 09:33:22 2020
+  Analysis ended on:  Tue Apr 21 09:33:23 2020
   Total elapsed time: 00:00:01

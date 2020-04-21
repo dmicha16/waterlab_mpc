@@ -92,12 +92,17 @@ C1               J1               Tanks1           400        0.01       0      
 [PUMPS]
 ;;Name           From Node        To Node          Pump Curve       Status   Sartup Shutoff 
 ;;-------------- ---------------- ---------------- ---------------- ------ -------- --------
-P1               Tanks1           Out1             *                OFF      0        0       
+P1               Tanks1           Out1             const_curve      OFF      0        0       
 
 [XSECTIONS]
 ;;Link           Shape        Geom1            Geom2      Geom3      Geom4      Barrels    Culvert   
 ;;-------------- ------------ ---------------- ---------- ---------- ---------- ---------- ----------
 C1               CIRCULAR     1                0          0          0          1                    
+
+[CURVES]
+;;Name           Type       X-Value    Y-Value   
+;;-------------- ---------- ---------- ----------
+const_curve      Pump1      0          1         
 
 [TIMESERIES]
 ;;Name           Date       Time       Value     

@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="BranchesTreeState">
+    <expand>
+      <path>
+        <item name="ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="LOCAL_ROOT" type="e8cecc67:BranchNodeDescriptor" />
+      </path>
+      <path>
+        <item name="ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="REMOTE_ROOT" type="e8cecc67:BranchNodeDescriptor" />
+      </path>
+      <path>
+        <item name="ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="REMOTE_ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="GROUP_NODE:origin" type="e8cecc67:BranchNodeDescriptor" />
+      </path>
+    </expand>
+    <select />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="b77259bf-c106-494f-8c61-3cebcdb5f217" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/epa_networks/proposal_network/proposal_network.out" beforeDir="false" afterPath="$PROJECT_DIR$/epa_networks/proposal_network/proposal_network.out" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/epa_networks/proposal_network/proposal_network.rpt" beforeDir="false" afterPath="$PROJECT_DIR$/epa_networks/proposal_network/proposal_network.rpt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/networkcontrol.py" beforeDir="false" afterPath="$PROJECT_DIR$/networkcontrol.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/proposal_network.py" beforeDir="false" afterPath="$PROJECT_DIR$/proposal_network.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/recipe/environment.yml" beforeDir="false" afterPath="$PROJECT_DIR$/recipe/environment.yml" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="JupyterTrust" id="9be1754c-f837-464b-8f05-36490862acb9" />
+  <component name="ProjectId" id="1a1V8MnJn51I0sfhFC7a0uoQz70" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">
+    <property name="ASKED_ADD_EXTERNAL_FILES" value="true" />
+    <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
+    <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
+    <property name="ToolWindowPython Console.ShowToolbar" value="false" />
+    <property name="WebServerToolWindowFactoryState" value="false" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/proposal_network.py" />
+    <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
+  </component>
+  <component name="RunManager">
+    <configuration default="true" type="PythonConfigurationType" factoryName="Python">
+      <module name="waterlab_mpc" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="true" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="proposal_network" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="waterlab_mpc" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/proposal_network.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="true" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Python.proposal_network" />
+      </list>
+    </recent_temporary>
+  </component>
+  <component name="SvnConfiguration">
+    <configuration />
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="b77259bf-c106-494f-8c61-3cebcdb5f217" name="Default Changelist" comment="" />
+      <created>1585902927061</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1585902927061</updated>
+      <workItem from="1585902941398" duration="1257000" />
+      <workItem from="1587031537854" duration="1564000" />
+      <workItem from="1587037762737" duration="383000" />
+      <workItem from="1587063712338" duration="30000" />
+      <workItem from="1587063766001" duration="742000" />
+      <workItem from="1587064556389" duration="590000" />
+      <workItem from="1587123313977" duration="4863000" />
+      <workItem from="1587128532156" duration="3086000" />
+      <workItem from="1587365704873" duration="908000" />
+      <workItem from="1587366998148" duration="1064000" />
+      <workItem from="1587372780908" duration="3250000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="2" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+    <option name="oldMeFiltersMigrated" value="true" />
+  </component>
+  <component name="WindowStateProjectService">
+    <state x="260" y="87" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1587129508124">
+      <screen x="74" y="0" width="1462" height="864" />
+    </state>
+    <state x="260" y="87" key="#com.intellij.execution.impl.EditConfigurationsDialog/74.0.1462.864@74.0.1462.864" timestamp="1587129508124" />
+    <state x="573" y="230" key="#com.intellij.fileTypes.FileTypeChooser" timestamp="1587130240572">
+      <screen x="74" y="0" width="1462" height="864" />
+    </state>
+    <state x="573" y="230" key="#com.intellij.fileTypes.FileTypeChooser/74.0.1462.864@74.0.1462.864" timestamp="1587130240572" />
+    <state x="487" y="171" key="#com.intellij.openapi.updateSettings.impl.PluginUpdateInfoDialog" timestamp="1587037240979">
+      <screen x="74" y="0" width="1462" height="864" />
+    </state>
+    <state x="487" y="171" key="#com.intellij.openapi.updateSettings.impl.PluginUpdateInfoDialog/74.0.1462.864@74.0.1462.864" timestamp="1587037240979" />
+    <state x="332" y="200" key="FileChooserDialogImpl" timestamp="1587129505240">
+      <screen x="74" y="0" width="1462" height="864" />
+    </state>
+    <state x="332" y="200" key="FileChooserDialogImpl/74.0.1462.864@74.0.1462.864" timestamp="1587129505240" />
+    <state width="1419" height="269" key="GridCell.Tab.0.bottom" timestamp="1587372903221">
+      <screen x="74" y="0" width="1462" height="864" />
+    </state>
+    <state width="1419" height="269" key="GridCell.Tab.0.bottom/74.0.1462.864@74.0.1462.864" timestamp="1587372903221" />
+    <state width="1419" height="269" key="GridCell.Tab.0.center" timestamp="1587372903220">
+      <screen x="74" y="0" width="1462" height="864" />
+    </state>
+    <state width="1419" height="269" key="GridCell.Tab.0.center/74.0.1462.864@74.0.1462.864" timestamp="1587372903220" />
+    <state width="1419" height="269" key="GridCell.Tab.0.left" timestamp="1587372903220">
+      <screen x="74" y="0" width="1462" height="864" />
+    </state>
+    <state width="1419" height="269" key="GridCell.Tab.0.left/74.0.1462.864@74.0.1462.864" timestamp="1587372903220" />
+    <state width="1419" height="269" key="GridCell.Tab.0.right" timestamp="1587372903220">
+      <screen x="74" y="0" width="1462" height="864" />
+    </state>
+    <state width="1419" height="269" key="GridCell.Tab.0.right/74.0.1462.864@74.0.1462.864" timestamp="1587372903220" />
+    <state width="1419" height="269" key="GridCell.Tab.1.bottom" timestamp="1587372903221">
+      <screen x="74" y="0" width="1462" height="864" />
+    </state>
+    <state width="1419" height="269" key="GridCell.Tab.1.bottom/74.0.1462.864@74.0.1462.864" timestamp="1587372903221" />
+    <state width="1419" height="269" key="GridCell.Tab.1.center" timestamp="1587372903221">
+      <screen x="74" y="0" width="1462" height="864" />
+    </state>
+    <state width="1419" height="269" key="GridCell.Tab.1.center/74.0.1462.864@74.0.1462.864" timestamp="1587372903221" />
+    <state width="1419" height="269" key="GridCell.Tab.1.left" timestamp="1587372903221">
+      <screen x="74" y="0" width="1462" height="864" />
+    </state>
+    <state width="1419" height="269" key="GridCell.Tab.1.left/74.0.1462.864@74.0.1462.864" timestamp="1587372903221" />
+    <state width="1419" height="269" key="GridCell.Tab.1.right" timestamp="1587372903221">
+      <screen x="74" y="0" width="1462" height="864" />
+    </state>
+    <state width="1419" height="269" key="GridCell.Tab.1.right/74.0.1462.864@74.0.1462.864" timestamp="1587372903221" />
+    <state x="316" y="78" key="SettingsEditor" timestamp="1587128483170">
+      <screen x="74" y="0" width="1462" height="864" />
+    </state>
+    <state x="316" y="78" key="SettingsEditor/74.0.1462.864@74.0.1462.864" timestamp="1587128483170" />
+    <state x="514" y="260" key="com.intellij.ide.util.TipDialog" timestamp="1587031558250">
+      <screen x="74" y="0" width="1462" height="864" />
+    </state>
+    <state x="514" y="260" key="com.intellij.ide.util.TipDialog/74.0.1462.864@74.0.1462.864" timestamp="1587031558250" />
+    <state x="498" y="290" width="663" height="284" key="org.intellij.images.editor.actions.BackgroundImageDialog" timestamp="1587032093980">
+      <screen x="74" y="0" width="1462" height="864" />
+    </state>
+    <state x="498" y="290" width="663" height="284" key="org.intellij.images.editor.actions.BackgroundImageDialog/74.0.1462.864@74.0.1462.864" timestamp="1587032093980" />
+    <state x="480" y="181" width="672" height="678" key="search.everywhere.popup" timestamp="1587064662625">
+      <screen x="74" y="0" width="1462" height="864" />
+    </state>
+    <state x="480" y="181" width="672" height="678" key="search.everywhere.popup/74.0.1462.864@74.0.1462.864" timestamp="1587064662625" />
+  </component>
+  <component name="com.intellij.coverage.CoverageDataManagerImpl">
+    <SUITE FILE_PATH="coverage/waterlab_mpc$proposal_network.coverage" NAME="proposal_network Coverage Results" MODIFIED="1587372875803" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+  </component>
+</project>
