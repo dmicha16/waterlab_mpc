@@ -52,7 +52,7 @@ def gen_theta(A, B, Hp, Hu):
 
 def gen_theta(upsilon, B, Hu):
     """
-    :param upsilon: Should be of type casadi.DM - Dimensions mxm
+    :param upsilon: Should be of type casadi.DM
     :param B: Should be of type casadi.DM - Dimensions mxp
     :param Hu: Should be an integer
     :return: Of type casadi.DM
@@ -64,3 +64,37 @@ def gen_theta(upsilon, B, Hu):
                             upsilon[0:(upsilon.shape[0] - B.shape[0] * i):1, :])
         Theta = ca.horzcat(Theta, newcol)
     return Theta
+
+def gen_predicted_states(psi, x0, upsilon, u_prev, theta, dU):
+    """
+    :param psi: Should be of type casadi.DM 
+    :param x0: States at time x(k)- Of Type casadi.SX
+    :param upsilon: Should be of type casadi.DM 
+    :param u_prev: Inputs at time u(k-1) - Of Type casadi.SX
+    :param theta: Should be of type casadi.DM 
+    :param dU: Change in inputs from time u(k-1) - Of Type casadi.SX
+    :return: Predicted states - Of Type casadi.SX
+    """
+    x = psi @ x0 + upsilon @ u_prev + theta @ dU
+    return x
+
+def blockdiag(Q,Hp):
+    """
+    :param Q: A mxm matrix - Of type casadi.DM
+    :param Hp: Number of diagonal entries - Integer
+    :return: (m * Hp) X (m * Hp) block diagonal matrix - Of type casadi.DM
+    """
+    R = ca.vertcat(Q, ca.DM.zeros((Hp-1) * Q.shape[0], Q.shape[1]))
+
+    for i in range(1, Hp):
+        top_row = ca.DM.zeros(i * Q.shape[0], Q.shape[1])
+
+        bot_row = ca.DM.zeros((Hp-i-1) * Q.shape[0], Q.shape[1])
+
+        new_row = ca.vertcat(ca.vertcat(top_row, Q), bot_row)
+
+        R = ca.horzcat(R, new_row)
+
+    return R
+
+
