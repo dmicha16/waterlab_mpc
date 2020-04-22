@@ -1,5 +1,5 @@
 # waterlab_mpc
-A Model Predictive Controller in Urban Drainage Networks (UDNs) to mitigate  Combined Sewer Overflows (CSOs)
+A Model Predictive Controller in for use in Urban Drainage Networks (UDNs) to mitigate  Combined Sewer Overflows (CSOs)
 
 ## Installations and requirements
 1) Install https://git-scm.com/downloads
