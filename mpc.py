@@ -1,8 +1,6 @@
 import casadi as ca
 
 
-# To formulate a MPC optimization problem we need to describe:
-# Z = psi x(k) + upsilon u(k-1) + Theta dU(x) (Assuming no disturbance)
 def gen_psi(A, Hp):
     """
     :param A: Should be of type casadi.DM
