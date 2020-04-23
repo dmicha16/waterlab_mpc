@@ -86,9 +86,7 @@ def blockdiag(Q,Hp):
 
     for i in range(1, Hp):
         top_row = ca.DM.zeros(i * Q.shape[0], Q.shape[1])
-
         bot_row = ca.DM.zeros((Hp-i-1) * Q.shape[0], Q.shape[1])
-
         new_row = ca.vertcat(ca.vertcat(top_row, Q), bot_row)
 
         R = ca.horzcat(R, new_row)

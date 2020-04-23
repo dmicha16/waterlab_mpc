@@ -3,11 +3,16 @@ Module for Level control
 """
 
 import casadi as ca
-import  mpc
+import mpc
 
 def gen_mpc_solver(A, B, Hu, Hp, Q, R):
-    # x0, u_prev, ref as SX
 
+    # Solver inputs
+    x0 = ca.SX(A.shape[0], 1)
+    u_prev = ca.SX(B.shape[1], 1)
+    ref = ca.SX(Hp * A.shape[0], 1)
+
+    # Solver outputs
     dU = ca.SX.sym('dU', B.shape[1] * Hu, 1)
 
     # To formulate a MPC optimization problem we need to describe:
@@ -33,6 +38,8 @@ def gen_mpc_solver(A, B, Hu, Hp, Q, R):
     #     else:
     #         U[:, t] = U[:, t - 1]
     return mpc_solver
+
+
 
 # def mpc_version_1(pump,tank):
 def on_off(pump, tank):
