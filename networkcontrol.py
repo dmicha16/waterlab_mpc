@@ -31,7 +31,7 @@ def gen_mpc_solver(A, B, Hu, Hp, Q, R):
     predicted_states = mpc.gen_predicted_states(psi, x0, upsilon, u_prev, theta, dU)
 
     # Cost function:
-    # Cost = (Z - T)' * Q * (Z - T) + dU' * R * dU;
+    # Cost = (Z - T)' * Q * (Z - T) + dU' * R * dU
     error = predicted_states - ref  # e = (Z - T)
     quadratic_cost = error.T @ Q @ error + dU.T @ R @ dU
     quadratic_problem = {'x': dU, 'p': input_variables, 'f': quadratic_cost}
