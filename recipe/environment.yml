@@ -6,5 +6,8 @@ dependencies:
   - pandas
   - jupyterlab
   - matplotlib
+  - pip:
+    - casadi==3.5.1
+    - pyswmm==0.6.0
 prefix: /home/davidm/anaconda3/envs/waterlab_mpc
 
