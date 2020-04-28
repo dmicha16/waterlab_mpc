@@ -6,7 +6,7 @@ Created on Sun Mar 29 20:12:58 2020
 @author: davidm
 """
 
-import matplotlib
+
 import matplotlib.pyplot as plt
 
 import pandas as pd
