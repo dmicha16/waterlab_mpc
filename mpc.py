@@ -1,5 +1,8 @@
 import casadi as ca
 
+
+
+
 def gen_mpc_solver(A, B, Hu, Hp, Q, R):
     # # The wrong way of declaring inputs
     # Solver inputs
@@ -36,6 +39,7 @@ def gen_mpc_solver(A, B, Hu, Hp, Q, R):
 
     return mpc_solver
 
+
 def gen_psi(A, Hp):
     """
     :param A: Should be of type casadi.DM
@@ -65,6 +69,7 @@ def gen_upsilon(A, B, Hp):
 
     return upsilon
 
+
 # def gen_theta(A, B, Hp, Hu):
 #     """
 #     :param A: Should be of type casadi.DM dimensions mxm
@@ -93,10 +98,11 @@ def gen_theta(upsilon, B, Hu):
     Theta = upsilon
 
     for i in range(1, Hu):
-        newcol = ca.vertcat(ca.DM.zeros(i*B.shape[0], B.shape[1]),
+        newcol = ca.vertcat(ca.DM.zeros(i * B.shape[0], B.shape[1]),
                             upsilon[0:(upsilon.shape[0] - B.shape[0] * i):1, :])
         Theta = ca.horzcat(Theta, newcol)
     return Theta
+
 
 def gen_predicted_states(psi, x0, upsilon, u_prev, theta, dU):
     """
@@ -111,17 +117,18 @@ def gen_predicted_states(psi, x0, upsilon, u_prev, theta, dU):
     x = psi @ x0 + upsilon @ u_prev + theta @ dU
     return x
 
-def blockdiag(Q,Hp):
+
+def blockdiag(Q, Hp):
     """
     :param Q: A mxm matrix - Of type casadi.DM
     :param Hp: Number of diagonal entries - Integer
     :return: (m * Hp) X (m * Hp) block diagonal matrix - Of type casadi.DM
     """
-    R = ca.vertcat(Q, ca.DM.zeros((Hp-1) * Q.shape[0], Q.shape[1]))
+    R = ca.vertcat(Q, ca.DM.zeros((Hp - 1) * Q.shape[0], Q.shape[1]))
 
     for i in range(1, Hp):
         top_row = ca.DM.zeros(i * Q.shape[0], Q.shape[1])
-        bot_row = ca.DM.zeros((Hp-i-1) * Q.shape[0], Q.shape[1])
+        bot_row = ca.DM.zeros((Hp - i - 1) * Q.shape[0], Q.shape[1])
         new_row = ca.vertcat(ca.vertcat(top_row, Q), bot_row)
 
         R = ca.horzcat(R, new_row)
@@ -130,5 +137,4 @@ def blockdiag(Q,Hp):
 
 
 def gen_solver_input(x0, u_prev, ref):
-
     return ca.vertcat(x0, ca.vertcat(u_prev, ref))

@@ -16,9 +16,9 @@ I = ca.DM.eye(B.size2())
 I = ca.DM([[1, 0], [0, 2]])
 R = mpc.blockdiag(I,Hu)
 x0 = ca.DM([[10],[11]])
-u_prev = ca.DM([0,0])
+u_prev = ca.DM([-1,-3])
 ref = ca.DM.ones(Hp*2, 1)
-
+ref[1::A.size1()]=np.cumsum(ref[1::A.size1()])/20+2
 input_solver = mpc.gen_solver_input(x0, u_prev, ref)
 
 mpc_solver = mpc.gen_mpc_solver(A, B, Hu, Hp, Q, R)
@@ -29,8 +29,7 @@ upsilon = mpc.gen_upsilon(A, B, Hp)
 theta = mpc.gen_theta(upsilon, B, Hu)
 
 
-
-mpl.plot_mpc_step(A,B,Hp,Hu,r,input_solver)
+mpl.plot_mpc_step(A,B,Hp,Hu,r,input_solver,{'drawU':'U'})
 
 
 
