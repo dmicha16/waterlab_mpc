@@ -137,4 +137,5 @@ def blockdiag(Q, Hp):
 
 
 def gen_solver_input(x0, u_prev, ref):
-    return ca.vertcat(x0, ca.vertcat(u_prev, ref))
+
+    return ca.vertcat(ca.vec(x0), ca.vertcat(ca.vec(u_prev), ca.vec(ref)))

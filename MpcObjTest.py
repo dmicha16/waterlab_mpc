@@ -19,4 +19,7 @@ ref = ca.DM.ones(Hp * 2, 1)
 ref[1::A.size1()] = np.cumsum(ref[1::A.size1()]) / 20 + 2
 
 mmpc = mpco.MpcObj(A, B, Hu, Hp, Q, R, x0, u_prev, ref)
-mmpc.plot_step({'drawU': 'U'})
+
+for i in range(0,10):
+    input("press key")
+
