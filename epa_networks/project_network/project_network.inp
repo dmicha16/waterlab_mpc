@@ -48,34 +48,34 @@ DRY_ONLY         NO
 [JUNCTIONS]
 ;;Name           Elevation  MaxDepth   InitDepth  SurDepth   Aponded   
 ;;-------------- ---------- ---------- ---------- ---------- ----------
-3                20         0          0          0          0         
+N1               20         0          0          0          0         
 
 [OUTFALLS]
 ;;Name           Elevation  Type       Stage Data       Gated    Route To        
 ;;-------------- ---------- ---------- ---------------- -------- ----------------
-5                0          FREE                        NO                       
+out              0          FREE                        NO                       
 
 [STORAGE]
 ;;Name           Elev.    MaxDepth   InitDepth  Shape      Curve Name/Params            N/A      Fevap    Psi      Ksat     IMD     
 ;;-------------- -------- ---------- ----------- ---------- ---------------------------- -------- --------          -------- --------
-2                0        3          0          FUNCTIONAL 50        0         0        0        0       
-4                9        2          0          FUNCTIONAL 25        0         0        0        0       
+T1               0        3          0          FUNCTIONAL 50        0         0        0        0       
+T2               9        2          0          FUNCTIONAL 25        0         0        0        0       
 
 [CONDUITS]
 ;;Name           From Node        To Node          Length     Roughness  InOffset   OutOffset  InitFlow   MaxFlow   
 ;;-------------- ---------------- ---------------- ---------- ---------- ---------- ---------- ---------- ----------
-3                3                4                200        0.01       1          0          0          0         
+P1               N1               T2               200        0.01       1          0          0          0         
 
 [PUMPS]
 ;;Name           From Node        To Node          Pump Curve       Status   Sartup Shutoff 
 ;;-------------- ---------------- ---------------- ---------------- ------ -------- --------
-2                2                3                const_curve      ON       0        0       
-4                4                5                const_curve      ON       0        0       
+FP1              T1               N1               const_curve      ON       0        0       
+FP2              T2               out              const_curve      ON       0        0       
 
 [XSECTIONS]
 ;;Link           Shape        Geom1            Geom2      Geom3      Geom4      Barrels    Culvert   
 ;;-------------- ------------ ---------------- ---------- ---------- ---------- ---------- ----------
-3                CIRCULAR     1                0          0          0          1                    
+P1               CIRCULAR     1                0          0          0          1                    
 
 [CURVES]
 ;;Name           Type       X-Value    Y-Value   
@@ -97,10 +97,10 @@ Units      None
 [COORDINATES]
 ;;Node           X-Coord            Y-Coord           
 ;;-------------- ------------------ ------------------
-3                373.597            2627.244          
-5                373.683            2627.203          
-2                373.548            2627.206          
-4                373.638            2627.206          
+N1               373.597            2627.244          
+out              373.683            2627.203          
+T1               373.548            2627.206          
+T2               373.638            2627.206          
 
 [VERTICES]
 ;;Link           X-Coord            Y-Coord           
