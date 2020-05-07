@@ -196,12 +196,14 @@ class MpcObj:
 
                 plt.step(t[1:3], U[0:2], 'r-', where="pre")
 
-            else:
+
                 idU = self.dU[i::self.inputs]
-                plt.plot(t[0:self.Hu], idU, '.', color=col)
+                plt.plot(t[1:self.Hu+1], idU, '.', color=col)
                 # plt.plot(t[0:2], ca.vertcat(self.u_prev[i], idU[0]), '.', color=col)
-                plt.plot(t[1], idU[1], 'o', color=col, label="{}={}".format(i, idU[1]))
+                plt.plot(t[1], idU[0], 'o', color=col, label="{}={}".format(i, idU[1]))
                 # plt.plot(t[0], idU[0], 'r.')
+            else:
+                print('k')
         ax2.legend()
         plt.xlabel('Time in steps')
         plt.ylabel(opts['drawU'])
@@ -226,12 +228,12 @@ class MpcObj:
             if not ignore_states.__contains__(s):
                 col = plt.cm.tab10(s)
                 plt.plot(t[1:self.k + 1], self.get_x0_log()[s, 0:].T, color=col)
-                plt.plot(t[2:self.k + 2], self.get_expected_x_log()[s, 0:].T, color=col, ls='--')
+                plt.plot(t[2:self.k + 2], self.get_expected_x_log()[s, 0:].T, color=col, ls='-.')
 
                 plt.plot(t[self.k + 1:], self.predicted_states[s::self.states], color=col)
                 plt.plot(t[self.k + 1:], self.ref[s::self.states], '--', color=col)
                 plt.plot(t[self.k:self.k + 2], ca.vertcat(self.x0[s], self.predicted_states[s]), 'r-')
-                plt.plot(t[self.k], self.x0[s], '.', color=col, label=s)
+                plt.plot(t[self.k], self.x0[s], '.', color=col, label="State {}={:.3f}".format(s, float(self.x0[s])))
 
         plt.ylabel('States')
         ax1.legend()
@@ -241,22 +243,24 @@ class MpcObj:
         for i in range(0, self.inputs):
             col = plt.cm.tab10(i)
             w = 'post'
-            if not ignore_inputs.__contains__(s):
+            if not ignore_inputs.__contains__(i):
                 if opts['drawU'] == 'U':
 
-                    U = np.cumsum(ca.vertcat(self.u_prev[i], self.dU[i::self.inputs]))
+                   # plt.plot(t[1:self.k + 1], self.get_x0_log()[s, 0:].T, color=col)
 
-                    plt.step(t[self.k:self.k + self.Hu + 1], U, color=col, where=w)
+                    U = np.cumsum(ca.vertcat(self.get_dU_log()[i, 0:-1].T, self.dU[i::self.inputs]))
+
+                    plt.step(t[1:self.k + self.Hu ], U, color=col, where=w)
                     #       plt.step(t[1:3], U[1:3], color=col, where=w)
-                    plt.plot(t[self.k + 1], U[1], '.', color=col, label=i)
+                    plt.plot(t[self.k + 1], U[self.k], '.', color=col, label="U{}={:.3f}".format(i, float(U[self.k])))
 
-                    plt.step(t[self.k + 1:self.k + 3], U[0:2], 'r-', where="pre")
+                    plt.step(t[self.k + 1:self.k + 3], U[self.k-1:self.k + 1], 'r-', where="pre")
 
                 else:
                     idU = self.dU[i::self.inputs]
                     plt.plot(t[self.k + 0:self.k + self.Hu], idU, '.', color=col)
                     # plt.plot(t[0:2], ca.vertcat(self.u_prev[i], idU[0]), '.', color=col)
-                    plt.plot(t[self.k + 1], idU[1], 'o', color=col, label="{}={}".format(i, idU[1]))
+                    plt.plot(t[self.k + 1], idU[self.k], 'o', color=col, label="dU{}={:.3f}".format(i, idU[self.k]))
                     # plt.plot(t[0], idU[0], 'r.')
         ax2.legend()
         plt.xlabel('Time in steps')

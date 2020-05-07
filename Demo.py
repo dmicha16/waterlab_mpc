@@ -13,8 +13,8 @@ B = ca.DM([[0.1, 0], [0, 0.5]])
 states = A.size1()
 inputs = B.size2()
 # Predictive Model
-rand_var = 0.02
-const_var = 1.01
+rand_var = 0.1
+const_var = 0.9
 rand_A = np.random.rand(A.size1(), A.size2())
 
 Ap = A * const_var + (np.random.rand(A.size1(), A.size2()) - 0.5) * rand_var
@@ -51,13 +51,13 @@ for j in range(1, steps):
         loop_in = input("press any key to step, or \'r\' to run all steps")
         looper = 'r' != loop_in
 
-    u = u + mmpc.dU[0:states]
+    u = u + mmpc.get_next_control_input_change()
     u_array = ca.horzcat(u_array, u)
     x = A @ x + B @ u
     x_array = ca.horzcat(x_array, ca.vec(x))
     mmpc.step(x, u, ref)
-    mmpc.plot_progress({'drawU': 'U'}, ignore_states=[1])
-
+    mmpc.plot_step({'drawU': 'U'})
+    mmpc.plot_progress({'drawU': 'U'})
         # draw
 
 
