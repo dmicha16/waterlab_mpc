@@ -1,9 +1,10 @@
 import casadi as ca
 
 
+def gen_mpc_solver(A, B, Hu, Hp, Q, R, B_d=None):
 
+    #TODO: should Q and R be generated in function as other matricies?
 
-def gen_mpc_solver(A, B, Hu, Hp, Q, R):
     # # The wrong way of declaring inputs
     # Solver inputs
     # x0 = ca.SX.sym('x0', A.shape[0], 1)
@@ -11,12 +12,16 @@ def gen_mpc_solver(A, B, Hu, Hp, Q, R):
     # ref = ca.SX.sym('ref', Hp * A.shape[0], 1)
     # input_variables = ca.vertcat(ca.vertcat(x0, u_prev), ref)
 
-    # Solver inputs
-    input_variables = ca.SX.sym('i', A.shape[0] + B.shape[1] + Hp * A.shape[0], 1)
-    x0 = input_variables[0:A.shape[0], :]
-    u_prev = input_variables[A.shape[0]:(A.shape[0] + B.shape[1]), :]
-    ref = input_variables[(A.shape[0] + B.shape[1]):(A.shape[0] + B.shape[1] + Hp * A.shape[0]), :]
+    states = A.size1()
+    inputs = B.size2()
 
+    # Solver inputs
+    input_variables = ca.SX.sym('i', states + inputs + (Hp * states) * 2, 1)
+    x0 = input_variables[0:states, :]
+    u_prev = input_variables[x0.size1():x0.size1() + inputs, :]
+    ref = input_variables[x0.size1() + u_prev.size1():x0.size1() + u_prev.size1() + Hp * states, :]
+    disturbance = input_variables[
+                  x0.size1() + u_prev.size1() + ref.size1():x0.size1() + u_prev.size1() + ref.size1() + Hp * states, :]
     # Solver outputs
     dU = ca.SX.sym('dU', B.shape[1] * Hu, 1)
 
@@ -25,7 +30,10 @@ def gen_mpc_solver(A, B, Hu, Hp, Q, R):
     psi = gen_psi(A, Hp)
     upsilon = gen_upsilon(A, B, Hp)
     theta = gen_theta(upsilon, B, Hu)
-    predicted_states = gen_predicted_states(psi, x0, upsilon, u_prev, theta, dU)
+    if B_d is None:
+        B_d = B
+    theta_d = gen_theta(upsilon, B_d, Hp)
+    predicted_states = gen_predicted_states(psi, x0, upsilon, u_prev, theta, dU, theta_d, disturbance)
 
     # Cost function:
     # Cost = (Z - T)' * Q * (Z - T) + dU' * R * dU
@@ -104,7 +112,7 @@ def gen_theta(upsilon, B, Hu):
     return Theta
 
 
-def gen_predicted_states(psi, x0, upsilon, u_prev, theta, dU):
+def gen_predicted_states(psi, x0, upsilon, u_prev, theta, dU, theta_d=None, disturbance=None):
     """
     :param psi: Should be of type casadi.DM 
     :param x0: States at time x(k)- Of Type casadi.SX
@@ -114,7 +122,12 @@ def gen_predicted_states(psi, x0, upsilon, u_prev, theta, dU):
     :param dU: Change in inputs from time u(k-1) - Of Type casadi.SX
     :return: Predicted states - Of Type casadi.SX
     """
-    x = psi @ x0 + upsilon @ u_prev + theta @ dU
+    if disturbance is None:
+        disturbance = ca.DM.zeros(psi.size1(), x0.size2())
+    if theta_d is None:
+        theta_d = theta
+        disturbance = disturbance[:theta_d.size2(), :]
+    x = psi @ x0 + upsilon @ u_prev + theta @ dU + theta_d @ disturbance
     return x
 
 
@@ -136,6 +149,6 @@ def blockdiag(Q, Hp):
     return R
 
 
-def gen_solver_input(x0, u_prev, ref):
-
-    return ca.vertcat(ca.vec(x0), ca.vertcat(ca.vec(u_prev), ca.vec(ref)))
+def gen_solver_input(x0, u_prev, ref, disturbance=None):
+    #TODO: Allow disturbance to be None?
+    return ca.vertcat(ca.vec(x0), ca.vertcat(ca.vec(u_prev), ca.vertcat(ca.vec(ref), ca.vec(disturbance))))

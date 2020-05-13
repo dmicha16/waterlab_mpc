@@ -3,6 +3,9 @@ import casadi as ca
 import mpc
 import numpy as np
 import matplotlib.pyplot as plt
+# import matplotlib
+# matplotlib.use('Qt4Agg',warn=False, force=True)
+# from matplotlib import pyplot as plt
 
 
 plt.ion()
@@ -47,7 +50,6 @@ x_array = x
 u_array = u
 looper = True
 
-
 for j in range(1, steps):
 
 
@@ -59,8 +61,8 @@ for j in range(1, steps):
     x = A @ x + B @ u
 
     mmpc.step(x, u, ref)
-    mmpc.plot_step({'drawU': 'both'})
-    #mmpc.plot_progress(options={'drawU': 'U'}, ignore_inputs=[1])
+    #mmpc.plot_step({'drawU': 'both'})
+    mmpc.plot_progress(options={'drawU': 'both'}, ignore_inputs=[3])
         # draw
 
 
