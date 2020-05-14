@@ -1,6 +1,5 @@
-import mpco
 import casadi as ca
-import mpc
+from controller import mpc, mpco
 import numpy as np
 import matplotlib.pyplot as plt
 # import matplotlib

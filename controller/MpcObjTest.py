@@ -1,6 +1,5 @@
-import mpco
 import casadi as ca
-import mpc
+from controller import mpc, mpco
 import numpy as np
 
 A = ca.DM([[1, 0], [0, 1.5]])

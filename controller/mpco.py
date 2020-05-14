@@ -1,4 +1,4 @@
-import mpc
+from controller import mpc
 import casadi as ca
 import numpy as np
 import matplotlib.pyplot as plt

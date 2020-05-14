@@ -1,5 +1,4 @@
-import mpc
-import networkcontrol as co
+from controller import mpc
 import casadi as ca
 import matplotlib.pyplot as plt
 import numpy as np
