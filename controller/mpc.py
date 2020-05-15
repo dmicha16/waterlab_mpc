@@ -1,9 +1,8 @@
 import casadi as ca
 
 
-def gen_mpc_solver(A, B, Hu, Hp, Q, R, B_d=None):
-
-    #TODO: should Q and R be generated in function as other matricies?
+def gen_mpc_solver(A, B, Hu, Hp, Q, R, B_d=None, L=None, Oc=None):
+    # TODO: should Q and R be generated in function as other matricies?
 
     # # The wrong way of declaring inputs
     # Solver inputs
@@ -14,17 +13,22 @@ def gen_mpc_solver(A, B, Hu, Hp, Q, R, B_d=None):
 
     states = A.size1()
     inputs = B.size2()
+    if Oc is None:
+        overflows = 0
+    else:
+        overflows = Oc.size2()
 
     # Solver inputs
-    input_variables = ca.SX.sym('i', states + inputs + (Hp * states) * 2, 1)
+    input_variables = ca.SX.sym('i', states + inputs + Hp * states + Hp * inputs, 1)
     x0 = input_variables[0:states, :]
     u_prev = input_variables[x0.size1():x0.size1() + inputs, :]
     ref = input_variables[x0.size1() + u_prev.size1():x0.size1() + u_prev.size1() + Hp * states, :]
     disturbance = input_variables[
-                  x0.size1() + u_prev.size1() + ref.size1():x0.size1() + u_prev.size1() + ref.size1() + Hp * states, :]
+                  x0.size1() + u_prev.size1() + ref.size1():x0.size1() + u_prev.size1() + ref.size1() + Hp * inputs, :]
     # Solver outputs
-    dU = ca.SX.sym('dU', B.shape[1] * Hu, 1)
-
+    x = ca.SX.sym('x', inputs * Hu + overflows * Hp, 1)
+    dU = x[:inputs * Hu]
+    dO = x[-overflows * Hp:]
     # To formulate a MPC optimization problem we need to describe:
     # Z = psi x(k) + upsilon u(k-1) + Theta dU(x) (Assuming no disturbance)
     psi = gen_psi(A, Hp)
@@ -38,8 +42,10 @@ def gen_mpc_solver(A, B, Hu, Hp, Q, R, B_d=None):
     # Cost function:
     # Cost = (Z - T)' * Q * (Z - T) + dU' * R * dU
     error = predicted_states - ref  # e = (Z - T)
+    constraints = predicted_states
+    lb = ca.DM.zeros(constraints.size1(), 1)
     quadratic_cost = error.T @ Q @ error + dU.T @ R @ dU
-    quadratic_problem = {'x': dU, 'p': input_variables, 'f': quadratic_cost}
+    quadratic_problem = {'x': dU, 'p': input_variables, 'f': quadratic_cost, 'g': constraints}
     print(quadratic_cost)
 
     mpc_solver = ca.qpsol('mpc_solver', 'qpoases', quadratic_problem)
@@ -127,7 +133,10 @@ def gen_predicted_states(psi, x0, upsilon, u_prev, theta, dU, theta_d=None, dist
     if theta_d is None:
         theta_d = theta
         disturbance = disturbance[:theta_d.size2(), :]
-    x = psi @ x0 + upsilon @ u_prev + theta @ dU + theta_d @ disturbance
+    x = psi @ x0 + \
+        upsilon @ u_prev + \
+        theta @ dU + \
+        theta_d @ disturbance
     return x
 
 
@@ -150,5 +159,5 @@ def blockdiag(Q, Hp):
 
 
 def gen_solver_input(x0, u_prev, ref, disturbance=None):
-    #TODO: Allow disturbance to be None?
+    # TODO: Allow disturbance to be None?
     return ca.vertcat(ca.vec(x0), ca.vertcat(ca.vec(u_prev), ca.vertcat(ca.vec(ref), ca.vec(disturbance))))

@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 
 class MpcObj:
 
-    def __init__(self, A, B, Hu, Hp, Q, R, x0, u_prev, ref, log_length=0, k=1, B_d=None, disturbance=None):
+    def __init__(self, A, B, Hu, Hp, Q, R, x0, u_prev, ref, B_d=None, disturbance=None, log_length=0, k=1):
         """
         :param A:(mxm) Model dynamics matrix of type casadi.DM
         :param B:(mxn) Input dynamics matrix of type casadi.DM
@@ -47,10 +47,11 @@ class MpcObj:
         self.u_prev = u_prev
         self.ref = ref
         if disturbance is None:
-            self.disturbance = ca.DM.zeros(self.psi.size1(), self.x0.size2())
+            self.disturbance = ca.DM.zeros(self.Hp * self.inputs, 1)
         else:
             self.disturbance = disturbance
         self.solver_input = mpc.gen_solver_input(self.x0, self.u_prev, self.ref, self.disturbance)
+        lb = ca.cumsum(ca.DM.ones(self.states * self.Hp, 1)) * 0.1
         self.result = self.solver(p=self.solver_input)
         self.dU = self.result['x']
         self.prev_steps = self.dU
@@ -181,23 +182,28 @@ class MpcObj:
         self.theta_d = mpc.gen_theta(self.upsilon, self.B_d, Hu)
         self.solver = mpc.gen_mpc_solver(self.A, self.B, self.Hu, self.Hp, self.Qb, self.Rb, self.B_d)
 
+    def print_result(self):
+        print(self.result)
+
+    def print_solver(self):
+        print(self.solver)
+
     def step(self, x0, u_prev, ref, disturbance=None):
         self.x0 = x0
         self.u_prev = u_prev
         self.ref = ref
         if disturbance is None:
-            self.disturbance = ca.DM.zeros(self.psi.size1(), self.x0.size2())
+            self.disturbance = ca.DM.zeros(self.Hp * self.inputs, 1)
         else:
             self.disturbance = disturbance
-
         self.solver_input = mpc.gen_solver_input(self.x0, self.u_prev, self.ref, self.disturbance)
         self.result = self.solver(p=self.solver_input)
 
         self.dU = self.result['x']
         self.prev_steps = self.dU
         # self.prev_steps.append(self.result)
-        self.predicted_states = mpc.gen_predicted_states(self.psi, self.x0, self.upsilon,
-                                                         self.u_prev, self.theta, self.dU)
+        self.predicted_states = mpc.gen_predicted_states(self.psi, self.x0, self.upsilon, self.u_prev, self.theta,
+                                                         self.dU, self.theta_d, self.disturbance)
         self.log(x0, self.get_next_expected_state(), self.get_next_control_input_change(), self.get_next_ref(),
                  self.get_next_disturbance())
         self.k = self.k + 1
@@ -214,7 +220,7 @@ class MpcObj:
         opts = {'drawU': 'U'}
         opts.update(options)
 
-        t = np.arange(0, (self.predicted_states.size1() + 1) / 2)
+        t = np.arange(0, self.get_Hp() + 1)
 
         ax1 = plt.subplot(211)
         plt.title("Optimized step at time k = {}".format(self.k))
@@ -271,7 +277,7 @@ class MpcObj:
         opts = {'drawU': 'U'}
         opts.update(options)
 
-        t = np.arange(-self.k, (self.predicted_states.size1() + 1) / 2)
+        t = np.arange(-self.k, self.get_Hp() + 1)
 
         ax1 = plt.subplot(211)
         plt.title("Progress at time k = {}".format(self.k))
