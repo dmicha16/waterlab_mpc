@@ -43,7 +43,7 @@ with Simulation('epa_networks/proposal_network/proposal_network.inp') as sim:
     pump1 = Links(sim)["P1"]
     tank1 = Nodes(sim)["Tanks1"]
 
-    # Leave someolume in the tank to avoid dry-run of the pumps
+    # Leave some volume in the tank to avoid dry-run of the pumps
     tank_mindepth = 0.1
 
     for idx, step in enumerate(sim):
