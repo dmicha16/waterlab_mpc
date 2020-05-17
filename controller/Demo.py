@@ -68,7 +68,7 @@ for j in range(1, steps):
 
     if looper and j % step_size == 0:
         loop_in = input("press any key to step, or \'r\' to run all steps")
-        looper = 'r' != loop_in
+        looper = ('r' != loop_in)
         mmpc.plot_progress(options={'drawU': 'U'}, ignore_inputs=[1, 2])
         # mmpc.plot_step({'drawU': 'both'})
 
