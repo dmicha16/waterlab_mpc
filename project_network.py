@@ -21,6 +21,12 @@ from pyswmm import Simulation, Nodes, Links
 import networkcontrol as controller
 from controller import mpc, mpco
 # import plotter as plotter
+from enum import Enum
+
+
+class SimType(Enum):
+    EULER = 1
+    PREISMANN = 2
 
 
 def print_welcome_msg():
@@ -30,19 +36,33 @@ def print_welcome_msg():
           " for Urban Drainage Networks (UDNs) to mitigate Combined Sewer Overflows (CSOs)")
 
 
-def define_prediction_model():
+def define_prediction_model(simulation_type):
 
-    Ap = ca.DM([[1, 0, 0], [0, 0.5, 0], [0, 0, 0.7]])
-    Bp = ca.DM([[0.1, 0, 0], [0, 0.5, 0], [0, 0, 1]])
-    Bp_d = ca.DM([[0.1, 0, 0], [0, 0.5, 0], [0, 0, 1]])
+    if simulation_type == SimType.EULER:
+        print("Euler model is constructed.")
+        Ap = ca.DM([[1, 0, 0], [0, 0.5, 0], [0, 0, 0.7]])
+        Bp = ca.DM([[0.1, 0, 0], [0, 0.5, 0], [0, 0, 1]])
+        Bp_d = ca.DM([[0.1, 0, 0], [0, 0.5, 0], [0, 0, 1]])
 
-    states = Ap.size1()
-    inputs = Bp.size2()
+    elif simulation_type == SimType.PREISMANN:
+        print("Priesmann model is constructed.")
+        Ap = ca.DM([[1, 0, 0], [0, 0.5, 0], [0, 0, 0.7]])
+        Bp = ca.DM([[0.1, 0, 0], [0, 0.5, 0], [0, 0, 1]])
+        Bp_d = ca.DM([[0.1, 0, 0], [0, 0.5, 0], [0, 0, 1]])
+    else:
+        print("Default, going with generic model.")
+        Ap = ca.DM([[1, 0, 0], [0, 0.5, 0], [0, 0, 0.7]])
+        Bp = ca.DM([[0.1, 0, 0], [0, 0.5, 0], [0, 0, 1]])
+        Bp_d = ca.DM([[0.1, 0, 0], [0, 0.5, 0], [0, 0, 1]])
+
+    num_states = Ap.size1()
+    num_inputs = Bp.size2()
 
     # TODO: fix the names here
-    prediction_model = {"system_model": Ap, "b_matrix": Bp, "bp_d": Bp_d, "states": states, "inputs": inputs}
+    pred_model = {"system_model": Ap, "b_matrix": Bp, "bp_d": Bp_d, "num_states": num_states, "num_inputs": num_inputs,
+                  "sim_type": simulation_type}
 
-    return prediction_model
+    return pred_model
 
 
 def define_real_model(prediction_model, prediction_horizon, control_horizon, disturbance_magnitude):
