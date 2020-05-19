@@ -1,6 +1,8 @@
 import casadi as ca
 import numpy as np
 
+from controller import mpco
+
 
 def set_euler_initial_conditions():
     """
@@ -24,6 +26,20 @@ def set_euler_weight_matrices():
     R = ca.DM([[0.1, 0, 0], [0, 0.2, 0], [0, 0, 0.3]])
 
     return [Q, R]
+
+def set_euler_ref(prediction_horizon, num_states):
+    """
+        Create an arbitrary reference for the Euler model
+        :param prediction_horizon: Length of the prediction horizon.
+        :param num_states: The number of states in the model
+        :return: Reference corresponding to the Euler model
+        """
+
+    ref = ca.DM.ones(prediction_horizon * num_states, 1)
+    for state in range(num_states):
+        ref[state::num_states] = ref[state::num_states] + state - 2
+
+    return ref
 
 
 def make_euler_model(simulation_type, pred_horizon, disturb_magnitude):
@@ -67,3 +83,35 @@ def make_euler_model(simulation_type, pred_horizon, disturb_magnitude):
     print("Euler model is constructed.")
 
     return initial_state_space_model
+
+
+def make_euler_mpc_model(state_space_model, prediction_horizon, control_horizon):
+    """
+    Make the MPC model for the Euler state space model. This function exposes the interface
+    to the MPC class instance, so it is easy to see what is being passed as the arguments from the state
+    space model. Furthermore, the control and prediction horizon is also added.
+    :param state_space_model: Euler model state space model.
+    :param prediction_horizon: Length of the prediction horizon.
+    :param control_horizon: Length of the control horizon
+    :return: Augmented state space model dictionary with the state space model as a new entry.
+    """
+
+    num_states = state_space_model["num_states"]
+
+    ref = set_euler_ref(prediction_horizon, num_states)
+
+    mpc_model = mpco.MpcObj(state_space_model["system_model"],
+                            state_space_model["B_matrix"],
+                            control_horizon,
+                            prediction_horizon,
+                            state_space_model["Q"],
+                            state_space_model["R"],
+                            state_space_model["x0"],
+                            state_space_model["u0"],
+                            ref,
+                            state_space_model["b_disturbance"],
+                            state_space_model["disturbance_array"])
+
+    state_space_model["mpc_model"] = mpc_model
+
+    return state_space_model

@@ -67,35 +67,31 @@ def define_state_space_model(simulation_type, pred_horizon, disturb_magnitude):
     return initial_state_space_model
 
 
-def set_init_conditions_weight_matrices(pred_model, pred_horizon, ctrl_horizon, disturb_magnitude):
+def create_mpc_model(ss_model, pred_horizon, ctrl_horizon):
+    """
+    Create a model specific MPC
+    :param ss_model: Model specific state space representation
+    :param pred_horizon: Length of prediction horizon
+    :param ctrl_horizon: Length of control horizon
+    :return: An augmented state space model with a new entry in the dict with the mpc object
+    """
 
-    Ap = pred_model["system_model"]
-    Bp = pred_model["b_matrix"]
-    Bp_d = pred_model["b_disturbance"]
+    simulation_type = ss_model["simulation_type"]
 
-    states = pred_model["num_states"]
-    inputs = pred_model["num_inputs"]
+    if simulation_type == SimType.EULER:
+        aug_state_space_model = euler_model.make_euler_mpc_model(ss_model, pred_horizon,
+                                                                 ctrl_horizon)
+    elif simulation_type == SimType.PREISMANN:
+        aug_state_space_model = preismann_model.make_preismann_mpc_model(ss_model, pred_horizon,
+                                                                         ctrl_horizon)
+    elif simulation_type == SimType.CUSTOM_MODEL:
+        aug_state_space_model = preismann_model.make_preismann_mpc_model(ss_model, pred_horizon,
+                                                                         ctrl_horizon)
+    else:
+        aug_state_space_model = preismann_model.make_preismann_mpc_model(ss_model, pred_horizon,
+                                                                         ctrl_horizon)
 
-    # Q, R is required for the model and it's defined here
-    Q = ca.DM([[1, 0, 0], [0, 2, 0], [0, 0, 3]])
-    R = ca.DM([[0.1, 0, 0], [0, 0.2, 0], [0, 0, 0.3]])
-
-    # To run the simulation you need the previous control input, in this case since the simulation is not run yet,
-    # these numbers are arbitrary
-    # initial conditions, specific for the model
-    x0 = ca.DM([[10], [11], [12]])
-    u0 = ca.DM([-1, -3, -6])
-
-    ref = set_reference(prediction_horizon, states)
-
-    # create mpc_model and construct the state_space_model
-    mpc_model = mpco.MpcObj(Ap, Bp, control_horizon, prediction_horizon, Q, R, x0, u0, ref, Bp_d, disturbance_matrix)
-
-    state_space_model = {"system_model": A, "B_matrix": B, "B_d": B_d, "disturbance": disturbance_matrix,
-                         "disturbance_magnitude": disturbance_magnitude, "Q_matrix": Q, "R_matrix": R,
-                         "inputs": inputs, "states": states, "reference": ref, "x0": x0, "u0": u0}
-
-    return [mpc_model, state_space_model]
+    return aug_state_space_model
 
 
 def set_reference(prediction_horizon, states):
@@ -114,8 +110,8 @@ def set_reference(prediction_horizon, states):
     return ref
 
 
-def run_simulation(time_step, pumps, tanks, network_df, network_name, complete_model):
-
+def run_simulation(time_step, pump_ids, tank_ids, network_df, network_path_name, complete_model,
+                   steps_between_plots, plot_mpc_steps):
     print("Running Simulation!")
     time.sleep(1)
 
@@ -134,50 +130,68 @@ def run_simulation(time_step, pumps, tanks, network_df, network_name, complete_m
     x = state_space_model["x0"]
     u = state_space_model["u0"]
 
-    steps_between_plots = 3
+    with Simulation(network_path_name) as sim:
 
-    plot_mpc_steps = True
-
-    with Simulation(network_name) as sim:
-
-        # pump1 = Links(sim)[pumps[0]]
-        # pump2 = Links(sim)[pumps[1]]
-        # tank1 = Nodes(sim)[tanks[0]]
-        # tank2 = Nodes(sim)[tanks[1]]
+        pump1 = Links(sim)[pump_ids[0]]
+        pump2 = Links(sim)[pump_ids[1]]
+        tank1 = Nodes(sim)[tank_ids[0]]
+        tank2 = Nodes(sim)[tank_ids[1]]
 
         sim.step_advance(time_step)
 
         user_key_input = input("press s key to step, or \'r\' to run all steps, or q to quit")
 
-        for idx, step in enumerate(sim):
+        if state_space_model["sim_type"] == SimType.CUSTOM_MODEL:
+            run_custom_simulation()
 
-            u = u + mpc_model.get_next_control_input_change()
-            x = A @ x + B @ u + B_d @ disturbance[:inputs]
-            new_disturbance = (np.random.rand(inputs) - 0.5) * disturbance_magnitude / 2
-            disturbance = np.append(disturbance[inputs:], new_disturbance)
+        if state_space_model["sim_type"] == SimType.EULER:
 
-            # TODO: finish filling of dataframe
-            # network_df = network_df.append(pd.Series([tank1.volume, tank1.depth, tank1.flooding, tank1.total_inflow,
-            #                                           pump1.flow], index=network_df.columns), ignore_index=True)
+            for idx, step in enumerate(sim):
 
-            if user_key_input == "r":
-                mpc_model.plot_progress(options={'drawU': 'U'}, ignore_inputs=[1, 2])
-                mpc_model.step(x, u, ref, disturbance)
-                print(f"Progress {int(sim.percent_complete * 100)}%", end="\r")
+                # TODO: cut this, because this is just instead of the EPA swmm
 
-            elif user_key_input == "s":
-                mpc_model.plot_progress(options={'drawU': 'U'}, ignore_inputs=[1, 2])
-                mpc_model.plot_step({'drawU': 'both'})
-                user_key_input = input("press s key to step, or \'r\' to run all steps, or q to quit")
+                # u = u + mpc_model.get_next_control_input_change()
+                # x = As @ x + Bs @ u + Bs_d @ disturbance[:inputs]
+                # new_disturbance = (np.random.rand(inputs) - 0.5) * disturbance_magnitude / 2
+                # disturbance = np.append(disturbance[inputs:], new_disturbance)
 
-            elif user_key_input == "q":
-                print("Quitting.")
-                break
+                states = [tank1.depth, tank2.depth]
+                # TODO: finish filling of dataframe
+                # network_df = network_df.append(pd.Series([tank1.volume, tank1.depth, tank1.flooding, tank1.total_inflow,
+                #                                           pump1.flow], index=network_df.columns), ignore_index=True)
+
+                # TODO: try non-blocking user input to fix printing like this
+                if user_key_input == "r":
+                    mpc_model.plot_progress(options={'drawU': 'U'}, ignore_inputs=[1, 2])
+                    mpc_model.step(x, u, ref, disturbance)
+
+                elif user_key_input == "s":
+                    mpc_model.plot_progress(options={'drawU': 'U'}, ignore_inputs=[1, 2])
+                    mpc_model.plot_step({'drawU': 'both'})
+                    user_key_input = input("press s key to step, or \'r\' to run all steps, or q to quit")
+
+                elif user_key_input == "rw":
+                    # TODO: make functionality in MPC to not plot each step, only the last file
+                    print("Running the simulation without plots.")
+                    mpc_model.step(x, u, ref, disturbance)
+
+                elif user_key_input == "q":
+                    print("Quitting.")
+                    break
+
+            mpc_model.plot_progress(options={'drawU': 'U'}, ignore_inputs=[1, 2])
 
     return network_df
 
 
-def save_data(simulation_df):
+def save_data(sim_df, simulation_type):
+    """
+    Saves DataFrames into folders named by date. Adds timestamp and simulation type into the name.
+    Output is in terms of python pickles of the df.
+    :param sim_df: The logs of the DataFrame from the simulation
+    :param simulation_type: Type of the simulation
+    :return: None
+    """
 
     today = datetime.now()
     timestamp_day = today.strftime("%m_%d_%y")
@@ -188,15 +202,15 @@ def save_data(simulation_df):
     if timestamp_day not in directory_contents:
         os.mkdir(path)
 
-    file_name = f"{path}/mpc_simulation_df_{timestamp_hour}.pkl"
+    # TODO: remove enum dot from name
+    file_name = f"{path}/mpc_simulation_df_{timestamp_hour}_{simulation_type}.pkl"
 
     print(file_name)
 
-    simulation_df.to_pickle(file_name)
+    sim_df.to_pickle(file_name)
 
 
 if __name__ == "__main__":
-
     print_welcome_msg()
 
     # create columns and pandas DataFrame to store data
@@ -205,29 +219,31 @@ if __name__ == "__main__":
 
     network_name = "epa_networks/project_network/project_network.inp"
 
-    # step size [seconds]
-    time_step = 30
+    # EPA SWMM engine step size [seconds]
+    sim_step_size = 30
 
-    pumps = ["P1", "P2"]
-    tanks = ["Tank1", "Tank2"]
+    # These have to be the names of the pumps and tanks from EPA SWMM
+    pumps = ["FP1", "FP2"]
+    tanks = ["T1", "T2"]
 
+    # TODO: make this into a dictionary
     prediction_horizon = 40
     control_horizon = 40
-
     disturbance_magnitude = 5
+    steps_between_plots = 3
+    plot_mpc_steps = True
 
-    prediction_model = define_prediction_model()
+    # Make sure to select the right type of model you want to run the MPC on
+    state_space_model = define_state_space_model(SimType.CUSTOM_MODEL, prediction_horizon,
+                                                 disturbance_magnitude)
 
-    complete_model = define_real_model(prediction_model, prediction_horizon, control_horizon, disturbance_magnitude)
+    # complete_model = set_init_conditions_weight_matrices(state_space_model, prediction_horizon, control_horizon,
+    #                                                      disturbance_magnitude)
 
-    simulation_df = run_simulation(time_step, pumps, tanks, network_df, network_name, complete_model)
+    simulation_df = run_simulation(sim_step_size, pumps, tanks, network_df, network_name, complete_model,
+                                   steps_between_plots, plot_mpc_steps)
     # simulation_df = network_df
 
-    save_data(simulation_df)
+    # save_data(simulation_df, prediction_model["sim_type"])
 
-
-
-
-
-
-
+    print("Simulation is finished.")
