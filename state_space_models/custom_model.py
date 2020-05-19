@@ -94,6 +94,7 @@ def make_custom_model_model(simulation_type, pred_horizon, disturb_magnitude):
 
     return initial_state_space_model
 
+
 def make_custom_mpc_model(state_space_model, prediction_horizon, control_horizon):
     """
     Make the MPC model for the Euler state space model. This function exposes the interface
@@ -124,3 +125,55 @@ def make_custom_mpc_model(state_space_model, prediction_horizon, control_horizon
     state_space_model["mpc_model"] = mpc_model
 
     return state_space_model
+
+
+def run_custom_model_simulation(complete_model, pred_horizon):
+
+    # TODO: move this var somewhere better
+    num_steps = 50
+
+    mpc_model = complete_model["mpc_model"]
+
+    num_inputs = complete_model["system_model"].size1()
+    num_states = complete_model["system_model"].size2()
+
+    As = complete_model["system_model"]
+    Bs = complete_model["b_matrix"]
+    Bs_d = complete_model["system_model"]
+    disturbance_magnitude = 5
+
+    x = complete_model["x0"]
+    u = complete_model["u0"]
+
+    disturbance = (np.random.rand(pred_horizon * num_inputs) - 0.5) * disturbance_magnitude
+
+    ref = set_custom_model_ref(pred_horizon, num_states)
+
+    for step in range(num_steps):
+
+        u = u + mpc_model.get_next_control_input_change()
+        x = As @ x + Bs @ u + Bs_d @ disturbance[:num_inputs]
+        new_disturbance = (np.random.rand(num_inputs) - 0.5) * disturbance_magnitude / 2
+        disturbance = np.append(disturbance[num_inputs:], new_disturbance)
+
+        user_key_input = input("press s key to step, or \'r\' to run all steps, or q to quit")
+
+        if user_key_input == "r":
+            mpc_model.plot_progress(options={'drawU': 'U'}, ignore_inputs=[1, 2])
+            mpc_model.step(x, u, ref, disturbance)
+
+        elif user_key_input == "s":
+            mpc_model.plot_progress(options={'drawU': 'U'}, ignore_inputs=[1, 2])
+            mpc_model.plot_step({'drawU': 'both'})
+            user_key_input = input("press s key to step, or \'r\' to run all steps, or q to quit")
+
+        elif user_key_input == "rw":
+            # TODO: make functionality in MPC to not plot each step, only the last file
+            print("Running the simulation without plots.")
+            mpc_model.step(x, u, ref, disturbance)
+
+        elif user_key_input == "q":
+            print("Quitting.")
+            break
+
+    mpc_model.plot_progress(options={'drawU': 'U'}, ignore_inputs=[1, 2])

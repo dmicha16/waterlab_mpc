@@ -102,7 +102,7 @@ def make_preismann_mpc_model(state_space_model, prediction_horizon, control_hori
     ref = set_preismann_ref(prediction_horizon, num_states)
 
     mpc_model = mpco.MpcObj(state_space_model["system_model"],
-                            state_space_model["B_matrix"],
+                            state_space_model["b_matrix"],
                             control_horizon,
                             prediction_horizon,
                             state_space_model["Q"],

@@ -76,7 +76,7 @@ def create_mpc_model(ss_model, pred_horizon, ctrl_horizon):
     :return: An augmented state space model with a new entry in the dict with the mpc object
     """
 
-    simulation_type = ss_model["simulation_type"]
+    simulation_type = ss_model["sim_type"]
 
     if simulation_type == SimType.EULER:
         aug_state_space_model = euler_model.make_euler_mpc_model(ss_model, pred_horizon,
@@ -94,16 +94,16 @@ def create_mpc_model(ss_model, pred_horizon, ctrl_horizon):
     return aug_state_space_model
 
 
-def set_reference(prediction_horizon, states):
+def set_reference(pred_horizon, states):
     """
     Create an arbitrary reference
     # TODO: make sure that this is the right reference
-    :param prediction_horizon:
+    :param pred_horizon:
     :param states:
     :return:
     """
 
-    ref = ca.DM.ones(prediction_horizon * states, 1)
+    ref = ca.DM.ones(pred_horizon * states, 1)
     for state in range(states):
         ref[state::states] = ref[state::states] + state - 2
 
@@ -115,71 +115,62 @@ def run_simulation(time_step, pump_ids, tank_ids, network_df, network_path_name,
     print("Running Simulation!")
     time.sleep(1)
 
-    mpc_model = complete_model[0]
-    state_space_model = complete_model[1]
+    mpc_model = complete_model["mpc_model"]
 
-    A = state_space_model["system_model"]
-    B = state_space_model["B_matrix"]
-    B_d = state_space_model["B_d"]
-    inputs = state_space_model["inputs"]
-    states = state_space_model["states"]
-    disturbance_magnitude = state_space_model["disturbance_magnitude"]
-    disturbance = state_space_model["disturbance"]
-    ref = state_space_model["reference"]
+    if state_space_model["sim_type"] == SimType.CUSTOM_MODEL:
+        custom_model.run_custom_model_simulation(complete_model, prediction_horizon)
 
-    x = state_space_model["x0"]
-    u = state_space_model["u0"]
+    elif state_space_model["sim_type"] == SimType.EULER:
+        pass
 
-    with Simulation(network_path_name) as sim:
 
-        pump1 = Links(sim)[pump_ids[0]]
-        pump2 = Links(sim)[pump_ids[1]]
-        tank1 = Nodes(sim)[tank_ids[0]]
-        tank2 = Nodes(sim)[tank_ids[1]]
-
-        sim.step_advance(time_step)
-
-        user_key_input = input("press s key to step, or \'r\' to run all steps, or q to quit")
-
-        if state_space_model["sim_type"] == SimType.CUSTOM_MODEL:
-            run_custom_simulation()
-
-        if state_space_model["sim_type"] == SimType.EULER:
-
-            for idx, step in enumerate(sim):
-
-                # TODO: cut this, because this is just instead of the EPA swmm
-
-                # u = u + mpc_model.get_next_control_input_change()
-                # x = As @ x + Bs @ u + Bs_d @ disturbance[:inputs]
-                # new_disturbance = (np.random.rand(inputs) - 0.5) * disturbance_magnitude / 2
-                # disturbance = np.append(disturbance[inputs:], new_disturbance)
-
-                states = [tank1.depth, tank2.depth]
-                # TODO: finish filling of dataframe
-                # network_df = network_df.append(pd.Series([tank1.volume, tank1.depth, tank1.flooding, tank1.total_inflow,
-                #                                           pump1.flow], index=network_df.columns), ignore_index=True)
-
-                # TODO: try non-blocking user input to fix printing like this
-                if user_key_input == "r":
-                    mpc_model.plot_progress(options={'drawU': 'U'}, ignore_inputs=[1, 2])
-                    mpc_model.step(x, u, ref, disturbance)
-
-                elif user_key_input == "s":
-                    mpc_model.plot_progress(options={'drawU': 'U'}, ignore_inputs=[1, 2])
-                    mpc_model.plot_step({'drawU': 'both'})
-                    user_key_input = input("press s key to step, or \'r\' to run all steps, or q to quit")
-
-                elif user_key_input == "rw":
-                    # TODO: make functionality in MPC to not plot each step, only the last file
-                    print("Running the simulation without plots.")
-                    mpc_model.step(x, u, ref, disturbance)
-
-                elif user_key_input == "q":
-                    print("Quitting.")
-                    break
-
-            mpc_model.plot_progress(options={'drawU': 'U'}, ignore_inputs=[1, 2])
+    # with Simulation(network_path_name) as sim:
+    #
+    #     pump1 = Links(sim)[pump_ids[0]]
+    #     pump2 = Links(sim)[pump_ids[1]]
+    #     tank1 = Nodes(sim)[tank_ids[0]]
+    #     tank2 = Nodes(sim)[tank_ids[1]]
+    #
+    #     sim.step_advance(time_step)
+    #
+    #     user_key_input = input("press s key to step, or \'r\' to run all steps, or q to quit")
+    #
+    #
+    #
+    #         for idx, step in enumerate(sim):
+    #
+    #             # TODO: cut this, because this is just instead of the EPA swmm
+    #
+    #             # u = u + mpc_model.get_next_control_input_change()
+    #             # x = As @ x + Bs @ u + Bs_d @ disturbance[:inputs]
+    #             # new_disturbance = (np.random.rand(inputs) - 0.5) * disturbance_magnitude / 2
+    #             # disturbance = np.append(disturbance[inputs:], new_disturbance)
+    #
+    #             states = [tank1.depth, tank2.depth]
+    #             # TODO: finish filling of dataframe
+    #             # network_df = network_df.append(pd.Series([tank1.volume, tank1.depth, tank1.flooding, tank1.total_inflow,
+    #             #                                           pump1.flow], index=network_df.columns), ignore_index=True)
+    #
+    #             # TODO: try non-blocking user input to fix printing like this
+    #             if user_key_input == "r":
+    #                 mpc_model.plot_progress(options={'drawU': 'U'}, ignore_inputs=[1, 2])
+    #                 mpc_model.step(x, u, ref, disturbance)
+    #
+    #             elif user_key_input == "s":
+    #                 mpc_model.plot_progress(options={'drawU': 'U'}, ignore_inputs=[1, 2])
+    #                 mpc_model.plot_step({'drawU': 'both'})
+    #                 user_key_input = input("press s key to step, or \'r\' to run all steps, or q to quit")
+    #
+    #             elif user_key_input == "rw":
+    #                 # TODO: make functionality in MPC to not plot each step, only the last file
+    #                 print("Running the simulation without plots.")
+    #                 mpc_model.step(x, u, ref, disturbance)
+    #
+    #             elif user_key_input == "q":
+    #                 print("Quitting.")
+    #                 break
+    #
+    #         mpc_model.plot_progress(options={'drawU': 'U'}, ignore_inputs=[1, 2])
 
     return network_df
 
@@ -237,8 +228,7 @@ if __name__ == "__main__":
     state_space_model = define_state_space_model(SimType.CUSTOM_MODEL, prediction_horizon,
                                                  disturbance_magnitude)
 
-    # complete_model = set_init_conditions_weight_matrices(state_space_model, prediction_horizon, control_horizon,
-    #                                                      disturbance_magnitude)
+    complete_model = create_mpc_model(state_space_model, prediction_horizon, control_horizon)
 
     simulation_df = run_simulation(sim_step_size, pumps, tanks, network_df, network_name, complete_model,
                                    steps_between_plots, plot_mpc_steps)
