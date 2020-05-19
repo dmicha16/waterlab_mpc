@@ -21,56 +21,68 @@ from pyswmm import Simulation, Nodes, Links
 import networkcontrol as controller
 from controller import mpc, mpco
 # import plotter as plotter
+from enum import Enum
+
+from state_space_models import euler_model,\
+    custom_model, preismann_model
+
+
+class SimType(Enum):
+    EULER = 1
+    PREISMANN = 2
+    CUSTOM_MODEL = 3
 
 
 def print_welcome_msg():
+    """
+    Prints a welcome msg and general status of the project.
+    :return: None
+    """
     # TODO: add ascii art ;)
+    # TODO: add perhaps version of the code base?
 
     print("A python project of a Model Predictive Controller (MPC)"
           " for Urban Drainage Networks (UDNs) to mitigate Combined Sewer Overflows (CSOs)")
 
 
-def define_prediction_model():
+def define_state_space_model(simulation_type, pred_horizon, disturb_magnitude):
 
-    Ap = ca.DM([[1, 0, 0], [0, 0.5, 0], [0, 0, 0.7]])
-    Bp = ca.DM([[0.1, 0, 0], [0, 0.5, 0], [0, 0, 1]])
-    Bp_d = ca.DM([[0.1, 0, 0], [0, 0.5, 0], [0, 0, 1]])
+    if simulation_type == SimType.EULER:
+        initial_state_space_model = euler_model.make_euler_model(simulation_type, pred_horizon,
+                                                                 disturb_magnitude)
 
-    states = Ap.size1()
-    inputs = Bp.size2()
+    elif simulation_type == SimType.PREISMANN:
+        initial_state_space_model = preismann_model.make_preismann_model(simulation_type, pred_horizon,
+                                                                         disturb_magnitude)
 
-    # TODO: fix the names here
-    prediction_model = {"system_model": Ap, "b_matrix": Bp, "bp_d": Bp_d, "states": states, "inputs": inputs}
+    elif simulation_type == SimType.CUSTOM_MODEL:
+        initial_state_space_model = custom_model.make_custom_model_model(simulation_type, pred_horizon,
+                                                                         disturb_magnitude)
 
-    return prediction_model
+    else:
+        print("Default, going with generic model.")
+        initial_state_space_model = custom_model.make_custom_model_model(simulation_type, pred_horizon,
+                                                                         disturb_magnitude)
+
+    return initial_state_space_model
 
 
-def define_real_model(prediction_model, prediction_horizon, control_horizon, disturbance_magnitude):
+def set_init_conditions_weight_matrices(pred_model, pred_horizon, ctrl_horizon, disturb_magnitude):
 
-    Ap = prediction_model["system_model"]
-    Bp = prediction_model["b_matrix"]
-    Bp_d = prediction_model["bp_d"]
+    Ap = pred_model["system_model"]
+    Bp = pred_model["b_matrix"]
+    Bp_d = pred_model["b_disturbance"]
 
-    states = prediction_model["states"]
-    inputs = prediction_model["inputs"]
+    states = pred_model["num_states"]
+    inputs = pred_model["num_inputs"]
 
-    rand_var = 0.00
-    const_var = 1.00
-    rand_A = np.random.rand(Ap.size1(), Ap.size2())
-
-    A = Ap * const_var + (np.random.rand(Ap.size1(), Ap.size2()) - 0.5) * rand_var
-    B = Bp * const_var + (np.random.rand(Bp.size1(), Bp.size2()) - 0.5) * rand_var
-    B_d = Bp_d * const_var + (np.random.rand(Bp_d.size1(), Bp_d.size2()) - 0.5) * rand_var
-
-    # TODO: double check if this is a matrix or not
-    disturbance_matrix = (np.random.rand(prediction_horizon * inputs) - 0.5) * disturbance_magnitude
-
+    # Q, R is required for the model and it's defined here
     Q = ca.DM([[1, 0, 0], [0, 2, 0], [0, 0, 3]])
-    Qb = mpc.blockdiag(Q, prediction_horizon)
     R = ca.DM([[0.1, 0, 0], [0, 0.2, 0], [0, 0, 0.3]])
-    Rb = mpc.blockdiag(R, control_horizon)
 
-    # To run the simulation you need the previous control input, in this case these numbers are arbitrary
+    # To run the simulation you need the previous control input, in this case since the simulation is not run yet,
+    # these numbers are arbitrary
+    # initial conditions, specific for the model
     x0 = ca.DM([[10], [11], [12]])
     u0 = ca.DM([-1, -3, -6])
 
