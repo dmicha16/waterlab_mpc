@@ -1,7 +1,7 @@
 import casadi as ca
 
 
-def gen_mpc_solver(A, B, Hu, Hp, Q, R, B_d=None, L=None, Oc=None):
+def gen_mpc_solver(A, B, Hu, Hp, Q, R, B_d=None):
     # TODO: should Q and R be generated in function as other matricies?
 
     # # The wrong way of declaring inputs
@@ -13,22 +13,22 @@ def gen_mpc_solver(A, B, Hu, Hp, Q, R, B_d=None, L=None, Oc=None):
 
     states = A.size1()
     inputs = B.size2()
-    if Oc is None:
-        overflows = 0
-    else:
-        overflows = Oc.size2()
+
 
     # Solver inputs
-    input_variables = ca.SX.sym('i', states + inputs + Hp * states + Hp * inputs, 1)
-    x0 = input_variables[0:states, :]
-    u_prev = input_variables[x0.size1():x0.size1() + inputs, :]
-    ref = input_variables[x0.size1() + u_prev.size1():x0.size1() + u_prev.size1() + Hp * states, :]
-    disturbance = input_variables[
-                  x0.size1() + u_prev.size1() + ref.size1():x0.size1() + u_prev.size1() + ref.size1() + Hp * inputs, :]
+    initial_state_index_end = states
+    prev_control_input_index_end = initial_state_index_end + inputs
+    reference_index_end = prev_control_input_index_end + Hp * states
+    disturbance_index_end = reference_index_end + Hp * inputs
+
+    input_variables = ca.SX.sym('i', disturbance_index_end, 1)
+    x0 = input_variables[0:initial_state_index_end, :]
+    u_prev = input_variables[initial_state_index_end:prev_control_input_index_end, :]
+    ref = input_variables[prev_control_input_index_end:reference_index_end, :]
+    disturbance = input_variables[reference_index_end:disturbance_index_end, :]
     # Solver outputs
-    x = ca.SX.sym('x', inputs * Hu + overflows * Hp, 1)
+    x = ca.SX.sym('x', inputs * Hu, 1)
     dU = x[:inputs * Hu]
-    dO = x[-overflows * Hp:]
     # To formulate a MPC optimization problem we need to describe:
     # Z = psi x(k) + upsilon u(k-1) + Theta dU(x) (Assuming no disturbance)
     psi = gen_psi(A, Hp)
@@ -39,17 +39,28 @@ def gen_mpc_solver(A, B, Hu, Hp, Q, R, B_d=None, L=None, Oc=None):
     theta_d = gen_theta(upsilon, B_d, Hp)
     predicted_states = gen_predicted_states(psi, x0, upsilon, u_prev, theta, dU, theta_d, disturbance)
 
+    # Setup constraints
+
+    # construct U fom dU
+    U = ca.SX.ones(dU.size1())
+    for i in range(0, inputs):
+        U[i::inputs] = ca.cumsum(dU[i::inputs])
+    U = U + ca.repmat(u_prev, Hu, 1)
+
+    constraints = ca.vertcat(predicted_states, U)
+
     # Cost function:
     # Cost = (Z - T)' * Q * (Z - T) + dU' * R * dU
     error = predicted_states - ref  # e = (Z - T)
-    constraints = predicted_states
-    lb = ca.DM.zeros(constraints.size1(), 1)
+
     quadratic_cost = error.T @ Q @ error + dU.T @ R @ dU
     quadratic_problem = {'x': dU, 'p': input_variables, 'f': quadratic_cost, 'g': constraints}
-    print(quadratic_cost)
-
-    mpc_solver = ca.qpsol('mpc_solver', 'qpoases', quadratic_problem)
-    print(mpc_solver)
+    # print(quadratic_cost)
+    # set print level: search for 'printLevel' in link
+    # http://casadi.sourceforge.net/v3.1.0/api/internal/de/d94/qpoases__interface_8cpp_source.html
+    opts = dict(printLevel='low')
+    mpc_solver = ca.qpsol('mpc_solver', 'qpoases', quadratic_problem, opts)
+    # print(mpc_solver)
 
     return mpc_solver
 
