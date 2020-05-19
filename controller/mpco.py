@@ -6,7 +6,10 @@ import matplotlib.pyplot as plt
 
 class MpcObj:
 
-    def __init__(self, A, B, Hu, Hp, Q, R, x0, u_prev, ref, B_d=None, disturbance=None, log_length=0, k=1):
+    def __init__(self, A, B, Hu, Hp, Q, R, x0, u_prev, ref, B_d=None, disturbance=None, log_length=0, k=1,
+                 lower_bounds_states=None, upper_bounds_states=None,
+                 lower_bounds_slew_rate=None, upper_bounds_slew_rate=None,  # TODO slew
+                 lower_bounds_input=None, upper_bounds_input=None):
         """
         :param A:(mxm) Model dynamics matrix of type casadi.DM
         :param B:(mxn) Input dynamics matrix of type casadi.DM
@@ -17,13 +20,16 @@ class MpcObj:
         :param x0:(mx1) Initial states
         :param u_prev:(nx1) Initial contol input
         :param ref: (m*hU x 1) Reference trajectory
-        :param log_length: (int) Nr. of steps to log, 0 = all
-        :param k: (int) Initial time step
+        :param B_d:
+        :param disturbance:
+        :param log_length: (int) Nr. of steps to log, 0 = all TODO implement functionality
+        :param k: (int) Initial time step TODO Check usage
         """
 
         self.states = A.size1()
         self.inputs = B.size2()
 
+        # Save dynamics and solver variables
         self.A = A
         self.B = B
         self.Hp = Hp
@@ -42,6 +48,7 @@ class MpcObj:
         self.theta_d = mpc.gen_theta(self.upsilon, self.B_d, Hp)
         self.solver = mpc.gen_mpc_solver(A, B, Hu, Hp, self.Qb, self.Rb, self.B_d)
 
+        # initial step
         self.k = k
         self.x0 = x0
         self.u_prev = u_prev
@@ -51,8 +58,48 @@ class MpcObj:
         else:
             self.disturbance = disturbance
         self.solver_input = mpc.gen_solver_input(self.x0, self.u_prev, self.ref, self.disturbance)
-        lb = ca.cumsum(ca.DM.ones(self.states * self.Hp, 1)) * 0.1
-        self.result = self.solver(p=self.solver_input)
+
+        # Save constraints
+        # State bounds
+        if lower_bounds_states is None:
+            self.lower_bounds_states = ca.DM.zeros(self.states * self.Hp, 1) - ca.inf
+        else:
+            self.lower_bounds_states = lower_bounds_states
+
+        if upper_bounds_states is None:
+            self.upper_bounds_states = ca.DM.zeros(self.states * self.Hp, 1) + ca.inf
+        else:
+            self.upper_bounds_states = upper_bounds_states
+
+        # Slew rate bounds
+        if lower_bounds_slew_rate is None:
+            self.lower_bounds_slew_rate = ca.DM.zeros(self.inputs * self.Hp, 1) - ca.inf
+        else:
+            self.lower_bounds_slew_rate = lower_bounds_slew_rate
+
+        if upper_bounds_slew_rate is None:
+            self.upper_bounds_slew_rate = ca.DM.zeros(self.inputs * self.Hp, 1) + ca.inf
+        else:
+            self.upper_bounds_slew_rate = upper_bounds_slew_rate
+
+        # Input bounds
+        if lower_bounds_input is None:
+            self.lower_bounds_input = ca.DM.zeros(self.inputs * self.Hp, 1) - ca.inf
+        else:
+            self.lower_bounds_input = lower_bounds_input
+
+        if upper_bounds_input is None:
+            self.upper_bounds_input = ca.DM.zeros(self.inputs * self.Hp, 1) + ca.inf
+        else:
+            self.upper_bounds_input = upper_bounds_input
+
+        lbx = self.lower_bounds_slew_rate
+        ubx = self.upper_bounds_slew_rate
+        lbg = ca.vertcat(ca.vec(self.lower_bounds_states), ca.vec(self.lower_bounds_input))
+        ubg = ca.vertcat(ca.vec(self.upper_bounds_states), ca.vec(self.upper_bounds_input))
+
+        self.result = self.solver(p=self.solver_input, lbg=lbg, ubg=ubg, lbx=lbx,
+                                  ubx=ubx)  # TODO lift constraints manualy?
         self.dU = self.result['x']
         self.prev_steps = self.dU
         # self.prev_steps.append(self.result)
