@@ -9,18 +9,18 @@ class PumpSetting(Enum):
     CLOSED = 0
     OPEN = 1
 
-
-def set_euler_initial_conditions():
-    """
-    Set initial conditions for the Euler model
-    :return: x0 and u0
-    """
-
-    # TODO: figure out how to get the initial conditions from pyswmm here
-    x0 = ca.DM([[10], [11], [12]])
-    u0 = ca.DM([-1, -3, -6])
-
-    return [x0, u0]
+# DEPRECATED
+# def set_euler_initial_conditions():
+#     """
+#     Set initial conditions for the Euler model
+#     :return: x0 and u0
+#     """
+#
+#     # TODO: figure out how to get the initial conditions from pyswmm here
+#     x0 = ca.DM([[10], [11], [12]])
+#     u0 = ca.DM([-1, -3, -6])
+#
+#     return [x0, u0]
 
 
 def set_euler_weight_matrices():
@@ -125,12 +125,18 @@ def make_euler_mpc_model(state_space_model, prediction_horizon, control_horizon)
     return state_space_model
 
 
-def run_euler_model_simulation(complete_model, prediction_horizon, sim, pump_ids, tank_ids):
+def run_euler_model_simulation(time_step, complete_model, prediction_horizon, sim, pump_ids, tank_ids, junction_ids):
 
     pump1 = Links(sim)[pump_ids[0]]
     pump2 = Links(sim)[pump_ids[1]]
     tank1 = Nodes(sim)[tank_ids[0]]
     tank2 = Nodes(sim)[tank_ids[1]]
+
+    junction_n1 = Nodes(sim)[junction_ids[0]]
+    junction_n2 = Nodes(sim)[junction_ids[1]]
+    junction_n3 = Nodes(sim)[junction_ids[2]]
+    junction_n4 = Nodes(sim)[junction_ids[3]]
+    junction_n5 = Nodes(sim)[junction_ids[4]]
 
     mpc_model = complete_model["mpc_model"]
 

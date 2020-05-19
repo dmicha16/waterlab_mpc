@@ -118,7 +118,7 @@ def set_reference(pred_horizon, states):
     return ref
 
 
-def run_simulation(time_step, pump_ids, tank_ids, network_df, network_path_name, complete_model,
+def run_simulation(time_step, pump_ids, tank_ids, junction_ids, network_df, network_path_name, complete_model,
                    steps_between_plots, plot_mpc_steps):
     print("Running Simulation!")
     time.sleep(1)
@@ -131,7 +131,8 @@ def run_simulation(time_step, pump_ids, tank_ids, network_df, network_path_name,
     with Simulation(network_path_name) as sim:
 
         if state_space_model["sim_type"] == SimType.EULER:
-            euler_model.run_euler_model_simulation(complete_model, prediction_horizon, sim, pump_ids, tank_ids)
+            euler_model.run_euler_model_simulation(time_step, complete_model, prediction_horizon, sim,
+                                                   pump_ids, tank_ids, junction_ids)
 
         elif state_space_model["sim_type"] == SimType.PREISMANN:
             preismann_model.run_preismann_model_simulation(complete_model, prediction_horizon, sim)
@@ -180,6 +181,7 @@ if __name__ == "__main__":
     # These have to be the names of the pumps and tanks from EPA SWMM
     pumps = ["FP1", "FP2"]
     tanks = ["T1", "T2"]
+    junctions = ["N1", "N1", "N2", "N3", "N4", "N5"]
 
     # TODO: make this into a dictionary
     prediction_horizon = 40
@@ -194,7 +196,7 @@ if __name__ == "__main__":
 
     complete_model = make_mpc_model(state_space_model, prediction_horizon, control_horizon)
 
-    simulation_df = run_simulation(sim_step_size, pumps, tanks, network_df, network_name, complete_model,
+    simulation_df = run_simulation(sim_step_size, pumps, tanks, junctions, network_df, network_name, complete_model,
                                    steps_between_plots, plot_mpc_steps)
     # simulation_df = network_df
 
