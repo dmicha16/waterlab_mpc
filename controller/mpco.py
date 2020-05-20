@@ -6,58 +6,66 @@ import matplotlib.pyplot as plt
 
 class MpcObj:
 
-    def __init__(self, A, B, Hu, Hp, Q, R, x0, u_prev, ref, B_d=None, disturbance=None, log_length=0, k=1,
+    def __init__(self, dynamics_matrix, input_matrix, Hu, Hp, Q, R, initial_state, u_prev, ref, input_matrix_d=None, disturbance=None, log_length=0, k=1,
                  lower_bounds_states=None, upper_bounds_states=None,
                  lower_bounds_slew_rate=None, upper_bounds_slew_rate=None,  # TODO slew
                  lower_bounds_input=None, upper_bounds_input=None):
+
         """
-        :param A:(mxm) Model dynamics matrix of type casadi.DM
-        :param B:(mxn) Input dynamics matrix of type casadi.DM
+        :param dynamics_matrix:(mxm) Model dynamics matrix of type casadi.DM
+        :param input_matrix:(mxn) Input dynamics matrix of type casadi.DM
         :param Hu:(int) Control horizon of type Integer
         :param Hp: (int) Prediction horizon of type Integer
         :param Q:(mxm) State cost matrix of type casadi.DM
         :param R:(mxm) Input change cost matrix of type casadi.DM
-        :param x0:(mx1) Initial states
+        :param initial_state:(mx1) Initial states
         :param u_prev:(nx1) Initial contol input
         :param ref: (m*hU x 1) Reference trajectory
-        :param B_d:
+        :param input_matrix_d:
         :param disturbance:
         :param log_length: (int) Nr. of steps to log, 0 = all TODO implement functionality
         :param k: (int) Initial time step TODO Check usage
+        :param lower_bounds_states: (states*Hp x 1) Lower bounds vector for states as type casadi.DM
+        :param upper_bounds_states: (states*Hp x 1) Upper bounds vector for states as type casadi.DM
+        :param lower_bounds_slew_rate: (inputs*Hu x 1) Lower bounds vector for slew rates as type casadi.DM
+        :param upper_bounds_slew_rate: (inputs*Hu x 1) Upper bounds vector for slew rates as type casadi.DM
+        :param lower_bounds_input: (inputs*Hu x 1) Lower bounds vector for inputs as type casadi.DM
+        :param upper_bounds_input: (inputs*Hu x 1) Lower bounds vector for slew rates as type casadi.DM
         """
 
-        self.states = A.size1()
-        self.inputs = B.size2()
+        # Getting number of states and inputs from matrix dimensions
+        self.states = dynamics_matrix.size1()
+        self.inputs = input_matrix.size2()
 
         # Save dynamics and solver variables
-        self.A = A
-        self.B = B
+        self.dynamics_matrix = dynamics_matrix
+        self.input_matrix = input_matrix
         self.Hp = Hp
         self.Hu = Hu
         self.Q = Q
         self.Qb = mpc.blockdiag(Q, Hp)
         self.R = R
         self.Rb = mpc.blockdiag(R, Hu)
-        self.psi = mpc.gen_psi(A, Hp)
-        self.upsilon = mpc.gen_upsilon(A, B, Hp)
-        self.theta = mpc.gen_theta(self.upsilon, B, Hu)
-        if B_d is None:
-            self.B_d = B
+        self.psi = mpc.gen_psi(dynamics_matrix, Hp)
+        self.upsilon = mpc.gen_upsilon(dynamics_matrix, input_matrix, Hp)
+        self.theta = mpc.gen_theta(self.upsilon, input_matrix, Hu)
+        if input_matrix_d is None:
+            self.input_matrix_d = input_matrix
         else:
-            self.B_d = B_d
-        self.theta_d = mpc.gen_theta(self.upsilon, self.B_d, Hp)
-        self.solver = mpc.gen_mpc_solver(A, B, Hu, Hp, self.Qb, self.Rb, self.B_d)
+            self.input_matrix_d = input_matrix_d
+        self.theta_d = mpc.gen_theta(self.upsilon, self.input_matrix_d, Hp)
+        self.solver = mpc.gen_mpc_solver(dynamics_matrix, input_matrix, Hu, Hp, self.Qb, self.Rb, self.input_matrix_d)
 
         # initial step
         self.k = k
-        self.x0 = x0
+        self.initial_state = initial_state
         self.u_prev = u_prev
         self.ref = ref
         if disturbance is None:
             self.disturbance = ca.DM.zeros(self.Hp * self.inputs, 1)
         else:
             self.disturbance = disturbance
-        self.solver_input = mpc.gen_solver_input(self.x0, self.u_prev, self.ref, self.disturbance)
+        self.solver_input = mpc.gen_solver_input(self.initial_state, self.u_prev, self.ref, self.disturbance)
 
         # Save constraints
         # State bounds
@@ -98,16 +106,15 @@ class MpcObj:
         lbg = ca.vertcat(ca.vec(self.lower_bounds_states), ca.vec(self.lower_bounds_input))
         ubg = ca.vertcat(ca.vec(self.upper_bounds_states), ca.vec(self.upper_bounds_input))
 
-        self.result = self.solver(p=self.solver_input, lbg=lbg, ubg=ubg, lbx=lbx,
-                                  ubx=ubx)  # TODO lift constraints manualy?
+        self.result = self.solver(p=self.solver_input, lbg=lbg, ubg=ubg, lbx=lbx, ubx=ubx)
         self.dU = self.result['x']
         self.prev_steps = self.dU
         # self.prev_steps.append(self.result)
-        self.predicted_states = mpc.gen_predicted_states(self.psi, self.x0, self.upsilon, self.u_prev, self.theta,
+        self.predicted_states = mpc.gen_predicted_states(self.psi, self.initial_state, self.upsilon, self.u_prev, self.theta,
                                                          self.dU, self.theta_d, self.disturbance)
 
         self.log_length = log_length
-        self.log_x0 = ca.vec(x0)
+        self.log_initial_state = ca.vec(initial_state)
         self.log_ref = ca.vec(self.get_next_ref())
         self.log_disturbance = ca.vec(self.get_next_disturbance())
         self.log_expected_x = ca.vec(self.get_next_expected_state())
@@ -134,23 +141,23 @@ class MpcObj:
     def get_k(self):
         return self.k
 
-    def set_A(self, A):
-        self.lift(A=A)
+    def set_dynamics_matrix(self, dynamics_matrix):
+        self.lift(dynamics_matrix=dynamics_matrix)
 
-    def get_A(self):
-        return self.A
+    def get_dynamics_matrix(self):
+        return self.dynamics_matrix
 
-    def set_B(self, B):
-        self.lift(B=B)
+    def set_input_matrix(self, input_matrix):
+        self.lift(input_matrix=input_matrix)
 
-    def get_B(self):
-        return self.B
+    def get_input_matrix(self):
+        return self.input_matrix
 
-    def set_B_d(self, B_d):
-        self.lift(B_d=B_d)
+    def set_input_matrix_d(self, input_matrix_d):
+        self.lift(input_matrix_d=input_matrix_d)
 
-    def get_B_d(self):
-        return self.B_d
+    def get_input_matrix_d(self):
+        return self.input_matrix_d
 
     def set_Hu(self, Hu):
         self.lift(Hu=Hu)
@@ -180,9 +187,9 @@ class MpcObj:
 
         return self.dU
 
-    def log(self, x0, expected_x, dU, ref, disturbance):
+    def log(self, initial_state, expected_x, dU, ref, disturbance):
 
-        self.log_x0 = ca.horzcat(self.log_x0, ca.vec(x0))
+        self.log_initial_state = ca.horzcat(self.log_initial_state, ca.vec(initial_state))
         self.log_ref = ca.horzcat(self.log_ref, ca.vec(ref))
         self.log_disturbance = ca.horzcat(self.log_disturbance, ca.vec(disturbance))
         self.log_expected_x = ca.horzcat(self.log_expected_x, ca.vec(expected_x))
@@ -192,9 +199,9 @@ class MpcObj:
 
         return self.log_expected_x
 
-    def get_x0_log(self):
+    def get_initial_state_log(self):
 
-        return self.log_x0
+        return self.log_initial_state
 
     def get_ref_log(self):
 
@@ -204,14 +211,14 @@ class MpcObj:
 
         return self.log_dU
 
-    def lift(self, A=None, B=None, Hu=None, Hp=None, Q=None, R=None, B_d=None):
+    def lift(self, dynamics_matrix=None, input_matrix=None, Hu=None, Hp=None, Q=None, R=None, input_matrix_d=None):
 
-        if A != None and A.shape == self.A.shape:
-            self.A = A
-        if B != None and B.shape == self.B.shape:
-            self.B = B
-        if B_d != None and B_d.shape == self.B_d.shape:
-            self.B_d = B_d
+        if dynamics_matrix != None and dynamics_matrix.shape == self.dynamics_matrix.shape:
+            self.dynamics_matrix = dynamics_matrix
+        if input_matrix != None and input_matrix.shape == self.input_matrix.shape:
+            self.input_matrix = input_matrix
+        if input_matrix_d != None and input_matrix_d.shape == self.input_matrix_d.shape:
+            self.input_matrix_d = input_matrix_d
         if Hp != None:
             self.Hp = Hp
         if Hu != None:
@@ -223,11 +230,11 @@ class MpcObj:
             self.R = R
             self.Rb = mpc.blockdiag(R, Hu)
 
-        self.psi = mpc.gen_psi(self.A, self.Hp)
-        self.upsilon = mpc.gen_upsilon(self.A, self.B, self.Hp)
-        self.theta = mpc.gen_theta(self.upsilon, self.B, self.Hu)
-        self.theta_d = mpc.gen_theta(self.upsilon, self.B_d, Hu)
-        self.solver = mpc.gen_mpc_solver(self.A, self.B, self.Hu, self.Hp, self.Qb, self.Rb, self.B_d)
+        self.psi = mpc.gen_psi(self.dynamics_matrix, self.Hp)
+        self.upsilon = mpc.gen_upsilon(self.dynamics_matrix, self.input_matrix, self.Hp)
+        self.theta = mpc.gen_theta(self.upsilon, self.input_matrix, self.Hu)
+        self.theta_d = mpc.gen_theta(self.upsilon, self.input_matrix_d, Hu)
+        self.solver = mpc.gen_mpc_solver(self.dynamics_matrix, self.input_matrix, self.Hu, self.Hp, self.Qb, self.Rb, self.input_matrix_d)
 
     def print_result(self):
         print(self.result)
@@ -235,23 +242,23 @@ class MpcObj:
     def print_solver(self):
         print(self.solver)
 
-    def step(self, x0, u_prev, ref, disturbance=None):
-        self.x0 = x0
+    def step(self, initial_state, u_prev, ref, disturbance=None):
+        self.initial_state = initial_state
         self.u_prev = u_prev
         self.ref = ref
         if disturbance is None:
             self.disturbance = ca.DM.zeros(self.Hp * self.inputs, 1)
         else:
             self.disturbance = disturbance
-        self.solver_input = mpc.gen_solver_input(self.x0, self.u_prev, self.ref, self.disturbance)
+        self.solver_input = mpc.gen_solver_input(self.initial_state, self.u_prev, self.ref, self.disturbance)
         self.result = self.solver(p=self.solver_input)
 
         self.dU = self.result['x']
         self.prev_steps = self.dU
         # self.prev_steps.append(self.result)
-        self.predicted_states = mpc.gen_predicted_states(self.psi, self.x0, self.upsilon, self.u_prev, self.theta,
+        self.predicted_states = mpc.gen_predicted_states(self.psi, self.initial_state, self.upsilon, self.u_prev, self.theta,
                                                          self.dU, self.theta_d, self.disturbance)
-        self.log(x0, self.get_next_expected_state(), self.get_next_control_input_change(), self.get_next_ref(),
+        self.log(initial_state, self.get_next_expected_state(), self.get_next_control_input_change(), self.get_next_ref(),
                  self.get_next_disturbance())
         self.k = self.k + 1
 
@@ -276,8 +283,8 @@ class MpcObj:
 
             plt.plot(t[1:], self.predicted_states[s::self.states], color=col)
             plt.plot(t[1:], self.ref[s::self.states], '--', color=col)
-            plt.plot(t[0:2], ca.vertcat(self.x0[s], self.predicted_states[s]), 'r-')
-            plt.plot(t[0], self.x0[s], '.', color=col, label="State {}={:.3f}".format(s, float(self.x0[s])))
+            plt.plot(t[0:2], ca.vertcat(self.initial_state[s], self.predicted_states[s]), 'r-')
+            plt.plot(t[0], self.initial_state[s], '.', color=col, label="State {}={:.3f}".format(s, float(self.initial_state[s])))
 
         plt.ylabel('States')
         ax1.legend()
@@ -333,14 +340,14 @@ class MpcObj:
         for s in range(0, self.states):
             if s not in ignore_states:
                 col = plt.cm.tab10(s)
-                plt.plot(t[1:self.k + 1], self.get_x0_log()[s, 0:].T, color=col)
+                plt.plot(t[1:self.k + 1], self.get_initial_state_log()[s, 0:].T, color=col)
                 plt.plot(t[2:self.k + 2], self.get_expected_x_log()[s, 0:].T, color=col, ls='-.')
 
                 plt.plot(t[self.k + 1:], self.predicted_states[s::self.states], color=col, alpha=0.6)
                 plt.plot(t[self.k + 1:], self.ref[s::self.states], '--', color=col, alpha=0.6)
                 plt.plot(t[2:self.k + 2], self.get_ref_log()[s, :].T, '--', color=col)
-                plt.plot(t[self.k:self.k + 2], ca.vertcat(self.x0[s], self.predicted_states[s]), 'r-')
-                plt.plot(t[self.k], self.x0[s], '.', color=col, label="State {}={:.3f}".format(s, float(self.x0[s])))
+                plt.plot(t[self.k:self.k + 2], ca.vertcat(self.initial_state[s], self.predicted_states[s]), 'r-')
+                plt.plot(t[self.k], self.initial_state[s], '.', color=col, label="State {}={:.3f}".format(s, float(self.initial_state[s])))
 
         plt.ylabel('States')
         ax1.legend()
@@ -351,7 +358,7 @@ class MpcObj:
             w = 'post'
             if i not in ignore_inputs:
                 if opts['drawU'] == 'both' or opts['drawU'] == 'U':
-                    # plt.plot(t[1:self.k + 1], self.get_x0_log()[s, 0:].T, color=col)
+                    # plt.plot(t[1:self.k + 1], self.get_initial_state_log()[s, 0:].T, color=col)
 
                     U = np.cumsum(ca.vertcat(self.get_dU_log()[i, 0:-1].T, self.dU[i::self.inputs]))
 
@@ -378,7 +385,7 @@ class MpcObj:
 
     # def step(self):
     #
-    #     x_prediction = mpc.gen_predicted_states(self.psi, self.x0, self.upsilon,
+    #     x_prediction = mpc.gen_predicted_states(self.psi, self.initial_state, self.upsilon,
     #                                             self.u_prev, self.theta, )
-    #     self.solver_input = mpc.gen_solver_input(x0, u_prev, ref)
+    #     self.solver_input = mpc.gen_solver_input(initial_state, u_prev, ref)
     #     self.result = self.solver(p=self.solver_input)

@@ -2,7 +2,7 @@ import casadi as ca
 
 
 def gen_mpc_solver(A, B, Hu, Hp, Q, R, B_d=None):
-    # TODO: should Q and R be generated in function as other matricies?
+
 
     # # The wrong way of declaring inputs
     # Solver inputs
