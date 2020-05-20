@@ -2,78 +2,88 @@ import casadi as ca
 
 
 def gen_mpc_solver(A, B, Hu, Hp, Q, R, B_d=None):
+    '''
+    Consult at p55 in Jan M. book for better understanding as well as casadi documentation
+        :param A:(mxm) Model dynamics matrix of type casadi.DM
+        :param B:(mxn) Input dynamics matrix of type casadi.DM
+        :param Hu:(int) Control horizon of type Integer
+        :param Hp: (int) Prediction horizon of type Integer
+        :param Q:(mxm) State cost matrix of type casadi.DM
+        :param R:(mxm) Input change cost matrix of type casadi.DM
+        :param B_d:(mxn)
+    '''
 
+    if B_d is None:
+        B_d = B
 
-    # # The wrong way of declaring inputs
-    # Solver inputs
+    # Useful dimensions
+    number_of_states = A.size1()
+    number_of_inputs = B.size2()
+    number_of_disturbances = B_d.size2()
+
+    # Index for input variable
+    initial_state_index_end = number_of_states
+    prev_control_input_index_end = initial_state_index_end + number_of_inputs
+    reference_index_end = prev_control_input_index_end + Hp * number_of_states
+    prev_disturbance_index_end = reference_index_end + number_of_disturbances
+    delta_disturbances_input_index_end = prev_disturbance_index_end + Hp * number_of_disturbances
+
+    # Declaring and parting out input variables
+    # Input = [x0, u_prev, ref, ud_prev, ud]
+    input_variables = ca.SX.sym('i', disturbance_index_end, 1)
+    x0 = input_variables[0:initial_state_index_end, :]
+    u_prev = input_variables[initial_state_index_end:prev_control_input_index_end, :]
+    ref = input_variables[prev_control_input_index_end:reference_index_end, :]
+    ud_prev = input_variables[reference_index_end:prev_disturbance_index_end, :]
+    dud = input_variables[prev_disturbance_index_end:delta_disturbances_input_index_end, :]
+
+    # Declaring solver outputs
+    x = ca.SX.sym('x', number_of_inputs * Hu, 1)
+    du = x[:number_of_inputs * Hu]
+
+    # The wrong way of declaring inputs
     # x0 = ca.SX.sym('x0', A.shape[0], 1)
     # u_prev = ca.SX.sym('u_prev', B.shape[1], 1)
     # ref = ca.SX.sym('ref', Hp * A.shape[0], 1)
     # input_variables = ca.vertcat(ca.vertcat(x0, u_prev), ref)
 
-
-    if B_d is None:
-        B_d = B
-
-    states = A.size1()
-    inputs = B.size2()
-    disturbance_inputs = B_d.size2()
-
-
-    # Solver inputs
-    initial_state_index_end = states
-    prev_control_input_index_end = initial_state_index_end + inputs
-    reference_index_end = prev_control_input_index_end + Hp * states
-    disturbance_index_end = reference_index_end + Hp * inputs
-
-    input_variables = ca.SX.sym('i', disturbance_index_end, 1)
-    x0 = input_variables[0:initial_state_index_end, :]
-    u_prev = input_variables[initial_state_index_end:prev_control_input_index_end, :]
-    ref = input_variables[prev_control_input_index_end:reference_index_end, :]
-    disturbance_prev
-    delta_disturbance = input_variables[reference_index_end:disturbance_index_end, :]
-
-    # Solver outputs
-    x = ca.SX.sym('x', inputs * Hu, 1)
-    dU = x[:inputs * Hu]
     # To formulate a MPC optimization problem we need to describe:
-    # Z = psi x(k) + upsilon u(k-1) + Theta dU(x) (Assuming no disturbance)
+    # predicted_states  = Z = psi x(k) + upsilon u(k-1) + Theta dU(x) + upsilon ud(k-1) + Theta dUd(x)
     psi = gen_psi(A, Hp)
     upsilon = gen_upsilon(A, B, Hp)
-
     theta = gen_theta(upsilon, B, Hu)
     upsilon_d = gen_upsilon(A, B_d, Hp)
     theta_d = gen_theta(upsilon_d, B_d, Hp)
-    predicted_states = gen_predicted_states(psi, x0, upsilon, u_prev, theta, dU, theta_d, disturbance)
+    predicted_states = gen_predicted_states(psi, x0, upsilon, u_prev, theta, du, upsilon_d, ud_prev, theta_d, dud)
 
     # Setup constraints
-
     # construct U fom dU
-    U = ca.SX.ones(dU.size1())
-    for i in range(0, inputs):
-        U[i::inputs] = ca.cumsum(dU[i::inputs])
+    U = ca.SX.ones(du.size1())
+    for i in range(0, number_of_inputs):
+        U[i::number_of_inputs] = ca.cumsum(du[i::number_of_inputs])
     U = U + ca.repmat(u_prev, Hu, 1)
-
     constraints = ca.vertcat(predicted_states, U)
 
     # Cost function:
     # Cost = (Z - T)' * Q * (Z - T) + dU' * R * dU
     error = predicted_states - ref  # e = (Z - T)
+    quadratic_cost = error.T @ Q @ error + du.T @ R @ du
 
-    quadratic_cost = error.T @ Q @ error + dU.T @ R @ dU
-    quadratic_problem = {'x': dU, 'p': input_variables, 'f': quadratic_cost, 'g': constraints}
-    # print(quadratic_cost)
+    # Setup Solver
     # set print level: search for 'printLevel' in link
     # http://casadi.sourceforge.net/v3.1.0/api/internal/de/d94/qpoases__interface_8cpp_source.html
     opts = dict(printLevel='low')
+    quadratic_problem = {'x': du, 'p': input_variables, 'f': quadratic_cost, 'g': constraints}
     mpc_solver = ca.qpsol('mpc_solver', 'qpoases', quadratic_problem, opts)
-    # print(mpc_solver)
+    # print(quadratic_cost)
+    print(mpc_solver)
 
     return mpc_solver
 
 
 def gen_psi(A, Hp):
     """
+    Consult at p55 in Jan M. book for better understanding
     :param A: Should be of type casadi.DM
     :param Hp: Should be an intenger
     :return: Of type casadi.DM
@@ -87,6 +97,7 @@ def gen_psi(A, Hp):
 
 def gen_upsilon(A, B, Hp):
     """
+    Consult at p55 in Jan M. book for better understanding
     :param A: Should be of type casadi.DM dimensions mxm
     :param B: Should be of type casadi.DM dimensions mxp
     :param Hp: Length of prediction horizon, should be an integer
@@ -123,7 +134,6 @@ def gen_upsilon(A, B, Hp):
 
 def gen_theta(upsilon, B, Hu):
     """
-    Creates Theta matrix based on the upsilon matrix and the rows of B
     Consult at p55 in Jan M. book for better understanding
     :param upsilon: Should be of type casadi.DM
     :param B: Placeholder matrix Should be of type casadi.DM - Dimensions mxp
@@ -146,9 +156,10 @@ def gen_theta(upsilon, B, Hu):
 
     return Theta
 
-
-def gen_predicted_states(psi, x0, upsilon, u_prev, theta, dU, ud_prev=None, theta_d=None, disturbance=None):
+def gen_predicted_states(psi, x0, upsilon, u_prev, theta, du, upsilon_d=None, ud_prev=None, theta_d=None, dud=None):
     """
+    Consult at p55 in Jan M. book for better understanding
+    Note that the added disturbance is modeled as an input disturbance
     :param psi: Should be of type casadi.DM 
     :param x0: States at time x(k)- Of Type casadi.SX
     :param upsilon: Should be of type casadi.DM 
@@ -157,15 +168,24 @@ def gen_predicted_states(psi, x0, upsilon, u_prev, theta, dU, ud_prev=None, thet
     :param dU: Change in inputs from time u(k-1) - Of Type casadi.SX
     :return: Predicted states - Of Type casadi.SX
     """
-    if disturbance is None:
-        disturbance = ca.DM.zeros(psi.size1(), x0.size2())
+    if upsilon_d is None:
+        upsilon_d = upsilon
+        print("Since no upsilon_d has been entered: upsilon_d = upsilon")
     if theta_d is None:
         theta_d = theta
-        disturbance = disturbance[:theta_d.size2(), :]
+        print("Since no theta_d has been entered: theta_d = theta")
+    if dud is None:
+        dud = ca.DM.zeros(theta_d.size2(), 1)
+        print("Since no dud has been entered: dud = 0")
+    if ud_prev is None:
+        ud_prev = ca.DM.zeros(upsilon_d.size2(), 1)
+        print("Since no dud has been entered: dud = 0")
+
     x = psi @ x0 + \
         upsilon @ u_prev + \
-        theta @ dU + \
-        theta_d @ disturbance
+        theta @ du + \
+        upsilon_d @ ud_prev + \
+        theta_d @ dud
     return x
 
 
