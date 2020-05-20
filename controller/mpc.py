@@ -11,8 +11,13 @@ def gen_mpc_solver(A, B, Hu, Hp, Q, R, B_d=None):
     # ref = ca.SX.sym('ref', Hp * A.shape[0], 1)
     # input_variables = ca.vertcat(ca.vertcat(x0, u_prev), ref)
 
+
+    if B_d is None:
+        B_d = B
+
     states = A.size1()
     inputs = B.size2()
+    disturbance_inputs = B_d.size2()
 
 
     # Solver inputs
@@ -25,7 +30,9 @@ def gen_mpc_solver(A, B, Hu, Hp, Q, R, B_d=None):
     x0 = input_variables[0:initial_state_index_end, :]
     u_prev = input_variables[initial_state_index_end:prev_control_input_index_end, :]
     ref = input_variables[prev_control_input_index_end:reference_index_end, :]
-    disturbance = input_variables[reference_index_end:disturbance_index_end, :]
+    disturbance_prev
+    delta_disturbance = input_variables[reference_index_end:disturbance_index_end, :]
+
     # Solver outputs
     x = ca.SX.sym('x', inputs * Hu, 1)
     dU = x[:inputs * Hu]
@@ -35,9 +42,6 @@ def gen_mpc_solver(A, B, Hu, Hp, Q, R, B_d=None):
     upsilon = gen_upsilon(A, B, Hp)
 
     theta = gen_theta(upsilon, B, Hu)
-    if B_d is None:
-        B_d = B
-
     upsilon_d = gen_upsilon(A, B_d, Hp)
     theta_d = gen_theta(upsilon_d, B_d, Hp)
     predicted_states = gen_predicted_states(psi, x0, upsilon, u_prev, theta, dU, theta_d, disturbance)
@@ -143,7 +147,7 @@ def gen_theta(upsilon, B, Hu):
     return Theta
 
 
-def gen_predicted_states(psi, x0, upsilon, u_prev, theta, dU, theta_d=None, disturbance=None):
+def gen_predicted_states(psi, x0, upsilon, u_prev, theta, dU, ud_prev=None, theta_d=None, disturbance=None):
     """
     :param psi: Should be of type casadi.DM 
     :param x0: States at time x(k)- Of Type casadi.SX
