@@ -2,18 +2,25 @@ import casadi as ca
 import numpy as np
 
 from controller import mpco
+from pyswmm import Simulation, Nodes, Links
+from enum import Enum
 
+class PumpSetting(Enum):
+    CLOSED = 0
+    OPEN = 1
 
-def set_euler_initial_conditions():
-    """
-    Set initial conditions for the Euler model
-    :return: x0 and u0
-    """
-
-    x0 = ca.DM([[10], [11], [12]])
-    u0 = ca.DM([-1, -3, -6])
-
-    return [x0, u0]
+# DEPRECATED
+# def set_euler_initial_conditions():
+#     """
+#     Set initial conditions for the Euler model
+#     :return: x0 and u0
+#     """
+#
+#     # TODO: figure out how to get the initial conditions from pyswmm here
+#     x0 = ca.DM([[10], [11], [12]])
+#     u0 = ca.DM([-1, -3, -6])
+#
+#     return [x0, u0]
 
 
 def set_euler_weight_matrices():
@@ -27,17 +34,16 @@ def set_euler_weight_matrices():
 
     return [Q, R]
 
+
 def set_euler_ref(prediction_horizon, num_states):
     """
-        Create an arbitrary reference for the Euler model
+        Create an linear arbitrary reference for the Euler model
         :param prediction_horizon: Length of the prediction horizon.
         :param num_states: The number of states in the model
         :return: Reference corresponding to the Euler model
         """
 
     ref = ca.DM.ones(prediction_horizon * num_states, 1)
-    for state in range(num_states):
-        ref[state::num_states] = ref[state::num_states] + state - 2
 
     return ref
 
@@ -53,9 +59,18 @@ def make_euler_model(simulation_type, pred_horizon, disturb_magnitude):
     weight matrices.
     """
 
-    Ap = ca.DM([[1, 0, 0], [0, 0.5, 0], [0, 0, 0.7]])
-    Bp = ca.DM([[0.1, 0, 0], [0, 0.5, 0], [0, 0, 1]])
-    Bp_d = ca.DM([[0.1, 0, 0], [0, 0.5, 0], [0, 0, 1]])
+    Ap = ca.DM([[1., 0., 0., 0., 0., 0., 0.],
+                [0., 0.77617, 0.21341, 0., 0., 0., 0.],
+                [0., 0.22383, 0.56276, 0.21341, 0., 0., 0.],
+                [0., 0., 0.22383, 0.56276, 0.21341, 0., 0.],
+                [0., 0., 0., 0.22383, 0.56276, 0.21341, 0.],
+                [0., 0., 0., 0., 0.22383, -0.43103, 1.2072],
+                [0., 0., 0., 0., 0., 1.2176, -0.2072]])
+
+    Bp = ca.DM([[-1/15, 0, 0], [1/4, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, -1/5, -1/5]])
+    Bp_d = ca.DM([1/15, 0, 0, 0, 0, 0, 0])
+
+    operating_point = ca.DM([0., -0.42265, 0., 0., 0., -2.4145, 2.8372])
 
     # size1 and size2 represent the num of rows and columns in the Casadi lib, respectively
     num_states = Ap.size1()
@@ -64,16 +79,14 @@ def make_euler_model(simulation_type, pred_horizon, disturb_magnitude):
     # TODO: check if this is the right thing to put here
     disturbance_array = (np.random.rand(pred_horizon * num_inputs) - 0.5) * disturb_magnitude
 
-    [x0, u0] = set_euler_initial_conditions()
     [Q, R] = set_euler_weight_matrices()
 
     initial_state_space_model = {"system_model": Ap,
                                  "b_matrix": Bp,
                                  "b_disturbance": Bp_d,
-                                 "x0": x0,
-                                 "u0": u0,
                                  "Q": Q,
                                  "R": R,
+                                 "operating_point": operating_point,
                                  "num_states": num_states,
                                  "num_inputs": num_inputs,
                                  "sim_type": simulation_type,
@@ -115,3 +128,87 @@ def make_euler_mpc_model(state_space_model, prediction_horizon, control_horizon)
     state_space_model["mpc_model"] = mpc_model
 
     return state_space_model
+
+
+def run_euler_model_simulation(time_step, complete_model, prediction_horizon, sim, pump_ids, tank_ids, junction_ids):
+
+    pump1 = Links(sim)[pump_ids[0]]
+    pump2 = Links(sim)[pump_ids[1]]
+    tank1 = Nodes(sim)[tank_ids[0]]
+    tank2 = Nodes(sim)[tank_ids[1]]
+
+    junction_n1 = Nodes(sim)[junction_ids[0]]
+    junction_n2 = Nodes(sim)[junction_ids[1]]
+    junction_n3 = Nodes(sim)[junction_ids[2]]
+    junction_n4 = Nodes(sim)[junction_ids[3]]
+    junction_n5 = Nodes(sim)[junction_ids[4]]
+
+    mpc_model = complete_model["mpc_model"]
+
+    # start the simulation with the pumps closed
+    # https://pyswmm.readthedocs.io/en/stable/reference/nodes.html
+    # TODO: here I could make a function which prints the information about the topo
+    # use these functions to set how much the pump is open for
+    pump1.current_setting = PumpSetting.CLOSED
+    pump2.current_setting = PumpSetting.CLOSED
+
+    # x initial conditions
+    states = [tank1.depth,
+              junction_n1.depth,
+              junction_n2.depth,
+              junction_n3.depth,
+              junction_n4.depth,
+              junction_n5.depth,
+              tank2.depth
+              ]
+
+    # u_prev
+    control_input = ca.DM.zeros(complete_model["num_inputs"], 1)
+
+    # zeros for now
+    ref = set_euler_ref(prediction_horizon, complete_model["num_states"])
+
+    disturbance = []
+
+    # make sure that the flow metrics are in Cubic Meters per Second [CMS]
+    for idx, step in enumerate(sim):
+
+        # TODO: finish filling of dataframe
+        # network_df = network_df.append(pd.Series([tank1.volume, tank1.depth, tank1.flooding, tank1.total_inflow,
+        #                                           pump1.flow], index=network_df.columns), ignore_index=True)
+
+        user_key_input = input("press s key to step, or \'r\' to run all steps, or q to quit")
+        # TODO: try non-blocking user input to fix printing like this
+        if user_key_input == "r":
+            mpc_model.plot_progress(options={'drawU': 'U'}, ignore_inputs=[1, 2])
+            mpc_model.step(states, control_input, ref, disturbance)
+
+        elif user_key_input == "s":
+            mpc_model.plot_progress(options={'drawU': 'U'}, ignore_inputs=[1, 2])
+            mpc_model.plot_step({'drawU': 'both'})
+            # user_key_input = input("press s key to step, or \'r\' to run all steps, or q to quit")
+
+        elif user_key_input == "rw":
+            # TODO: make functionality in MPC to not plot each step, only the last file
+            print("Running the simulation without plots.")
+            mpc_model.step(states, control_input, ref, disturbance)
+
+        elif user_key_input == "q":
+            print("Quitting.")
+            break
+
+    control_input = control_input + mpc_model.get_next_control_input_change()
+    pump1.current_setting = control_input[0]
+    pump2.current_setting = control_input[1]
+
+    # tank1.depth, hp1.depth, hp2.depth ... hp5.depth, tank2.depth
+    states = [tank1.depth,
+              junction_n1.depth,
+              junction_n2.depth,
+              junction_n3.depth,
+              junction_n4.depth,
+              junction_n5.depth,
+              tank2.depth
+              ]
+
+    sim.step_advance(time_step)

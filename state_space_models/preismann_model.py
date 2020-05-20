@@ -116,3 +116,6 @@ def make_preismann_mpc_model(state_space_model, prediction_horizon, control_hori
     state_space_model["mpc_model"] = mpc_model
 
     return state_space_model
+
+def run_preismann_model_simulation(complete_model, prediction_horizon, sim):
+    pass

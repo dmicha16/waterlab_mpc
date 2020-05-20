@@ -69,6 +69,8 @@ step_size = 3
 
 for j in range(1, steps):
 
+
+    # this model is instead of the EPA swmm
     u = u + mmpc.get_next_control_input_change()
     x = A @ x + B @ u + B_d @ dist[:inputs]
     nd = (np.random.rand(inputs) - 0.5) * dist_magnitude / 2
