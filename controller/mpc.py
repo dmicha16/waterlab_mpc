@@ -30,7 +30,7 @@ def gen_mpc_solver(A, B, Hu, Hp, Q, R, B_d=None):
 
     # Declaring and parting out input variables
     # Input = [x0, u_prev, ref, ud_prev, ud]
-    input_variables = ca.SX.sym('i', disturbance_index_end, 1)
+    input_variables = ca.SX.sym('i', delta_disturbances_input_index_end, 1)
     x0 = input_variables[0:initial_state_index_end, :]
     u_prev = input_variables[initial_state_index_end:prev_control_input_index_end, :]
     ref = input_variables[prev_control_input_index_end:reference_index_end, :]
@@ -144,7 +144,6 @@ def gen_theta(upsilon, B, Hu):
     Theta = upsilon
 
     for col_idx in range(1, Hu):
-        print(col_idx)
         zeros_matrix = ca.DM.zeros(col_idx * B.shape[0], B.shape[1])
 
         # Reduce upsilon by the number of rows corresponding to the col_idx and rows of B
