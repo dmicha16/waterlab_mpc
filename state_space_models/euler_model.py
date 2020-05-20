@@ -10,17 +10,17 @@ class PumpSetting(Enum):
     OPEN = 1
 
 # DEPRECATED
-# def set_euler_initial_conditions():
-#     """
-#     Set initial conditions for the Euler model
-#     :return: x0 and u0
-#     """
-#
-#     # TODO: figure out how to get the initial conditions from pyswmm here
-#     x0 = ca.DM([[10], [11], [12]])
-#     u0 = ca.DM([-1, -3, -6])
-#
-#     return [x0, u0]
+def set_euler_initial_conditions():
+    """
+    Set initial conditions for the Euler model
+    :return: x0 and u0
+    """
+
+    # TODO: figure out how to get the initial conditions from pyswmm here
+    x0 = ca.DM.zeros(7, 1)
+    u0 = ca.DM.zeros(3, 1)
+
+    return [x0, u0]
 
 
 def set_euler_weight_matrices():
@@ -29,8 +29,10 @@ def set_euler_weight_matrices():
     :return: Q and R matrices
     """
 
-    Q = ca.DM([[1, 0, 0], [0, 2, 0], [0, 0, 3]])
-    R = ca.DM([[0.1, 0, 0], [0, 0.2, 0], [0, 0, 0.3]])
+    # intially to ones to run the code
+    # TODO: add proper Q and R matrices @Casper
+    Q = ca.DM.ones(7, 7)
+    R = ca.DM.ones(3, 3)
 
     return [Q, R]
 
@@ -77,8 +79,10 @@ def make_euler_model(simulation_type, pred_horizon, disturb_magnitude):
     num_inputs = Bp.size2()
 
     # TODO: check if this is the right thing to put here
+    # TODO: make sure when we feed the disturbance it's also lifted to Dd from D?
     disturbance_array = (np.random.rand(pred_horizon * num_inputs) - 0.5) * disturb_magnitude
 
+    [x0, u0] = set_euler_initial_conditions()
     [Q, R] = set_euler_weight_matrices()
 
     initial_state_space_model = {"system_model": Ap,
@@ -86,6 +90,8 @@ def make_euler_model(simulation_type, pred_horizon, disturb_magnitude):
                                  "b_disturbance": Bp_d,
                                  "Q": Q,
                                  "R": R,
+                                 "x0": x0,
+                                 "u0": u0,
                                  "operating_point": operating_point,
                                  "num_states": num_states,
                                  "num_inputs": num_inputs,
@@ -114,7 +120,7 @@ def make_euler_mpc_model(state_space_model, prediction_horizon, control_horizon)
     ref = set_euler_ref(prediction_horizon, num_states)
 
     mpc_model = mpco.MpcObj(state_space_model["system_model"],
-                            state_space_model["B_matrix"],
+                            state_space_model["b_matrix"],
                             control_horizon,
                             prediction_horizon,
                             state_space_model["Q"],
@@ -144,6 +150,8 @@ def run_euler_model_simulation(time_step, complete_model, prediction_horizon, si
     junction_n5 = Nodes(sim)[junction_ids[4]]
 
     mpc_model = complete_model["mpc_model"]
+
+    operating_point = complete_model["operating_point"]
 
     # start the simulation with the pumps closed
     # https://pyswmm.readthedocs.io/en/stable/reference/nodes.html

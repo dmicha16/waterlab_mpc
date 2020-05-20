@@ -33,10 +33,13 @@ def gen_mpc_solver(A, B, Hu, Hp, Q, R, B_d=None):
     # Z = psi x(k) + upsilon u(k-1) + Theta dU(x) (Assuming no disturbance)
     psi = gen_psi(A, Hp)
     upsilon = gen_upsilon(A, B, Hp)
+
     theta = gen_theta(upsilon, B, Hu)
     if B_d is None:
         B_d = B
-    theta_d = gen_theta(upsilon, B_d, Hp)
+
+    upsilon_d = gen_upsilon(A, B_d, Hp)
+    theta_d = gen_theta(upsilon_d, B_d, Hp)
     predicted_states = gen_predicted_states(psi, x0, upsilon, u_prev, theta, dU, theta_d, disturbance)
 
     # Setup constraints
@@ -82,11 +85,12 @@ def gen_upsilon(A, B, Hp):
     """
     :param A: Should be of type casadi.DM dimensions mxm
     :param B: Should be of type casadi.DM dimensions mxp
-    :param Hp: Should be an integer
+    :param Hp: Length of prediction horizon, should be an integer
     :return: Of type casadi.DM
     """
     upsilon = B
     prev = upsilon
+
     for i in range(1, Hp):
         new = ca.mpower(A, i) @ B + prev
         prev = new
@@ -115,17 +119,27 @@ def gen_upsilon(A, B, Hp):
 
 def gen_theta(upsilon, B, Hu):
     """
+    Creates Theta matrix based on the upsilon matrix and the rows of B
+    Consult at p55 in Jan M. book for better understanding
     :param upsilon: Should be of type casadi.DM
-    :param B: Should be of type casadi.DM - Dimensions mxp
+    :param B: Placeholder matrix Should be of type casadi.DM - Dimensions mxp
     :param Hu: Should be an integer
     :return: Of type casadi.DM
     """
+
     Theta = upsilon
 
-    for i in range(1, Hu):
-        newcol = ca.vertcat(ca.DM.zeros(i * B.shape[0], B.shape[1]),
-                            upsilon[0:(upsilon.shape[0] - B.shape[0] * i):1, :])
-        Theta = ca.horzcat(Theta, newcol)
+    for col_idx in range(1, Hu):
+        print(col_idx)
+        zeros_matrix = ca.DM.zeros(col_idx * B.shape[0], B.shape[1])
+
+        # Reduce upsilon by the number of rows corresponding to the col_idx and rows of B
+        reduced_upsilon = upsilon[0:(upsilon.shape[0] - B.shape[0] * col_idx):1, :]
+
+        new_col = ca.vertcat(zeros_matrix, reduced_upsilon)
+        a = 1
+        Theta = ca.horzcat(Theta, new_col)
+
     return Theta
 
 
