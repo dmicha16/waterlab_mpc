@@ -1,13 +1,12 @@
 import csv
 import casadi as ca
 import pandas as pd
+import numpy as np
 
 # default='warn'
 pd.options.mode.chained_assignment = None
-import numpy as np
 
 # TODO: add to the logging the type and the gain of the dataset used for the scenario
-
 # TODO: move settings of the simulation into the json file with the same name instead of into the file name
 
 
@@ -71,23 +70,55 @@ class Disturbance:
         return self.disturbance_df
 
     def get_pred_horizon_df(self, k, pred_horizon):
+        """
+        Slices the disturbance DataFrame according to the k-th index and to the length of the prediction horizon. Note,
+        that if the k-th index is - 1, a zero padded row is added to the top assuming that the disturbance before time\
+         0, is 0. Furthermore, if the horizon is over the length of the DataFrame datapoints, zero padding is added to
+         fill the return slice to the length of the horizon.
+        :param k: k-th index of the simulation
+        :param pred_horizon: Length of the prediction horizon
+        :return: Slice of the disturbance DataFrame
+        """
 
+        # print(f"K {k}")
         num_df_rows = self.disturbance_df.shape[0]
 
-        if k + pred_horizon < num_df_rows:
+        if k == - 1:
+            # Make sure that the slice from the DataFrame is one shorter. This is done to
+            # allow for a insertion of a zero row as the very first element, since before time 0, it is assumed
+            # that the disturbance 0.
+
+            k = 0
+            pred_horizon = pred_horizon - 1
             rows_k_to_pred_horizon = self.disturbance_df.iloc[k:k + pred_horizon]
-            print(rows_k_to_pred_horizon)
+
+            # Create empty DataFrame of 1 line with zeros and then append the sliced disturbance rows to the bottom
+            zero_line_df = pd.DataFrame(columns=["Poop", "Rain"])
+            zero_line_df.loc[0] = [0, 0]
+            rows_k_to_pred_horizon = zero_line_df.append(rows_k_to_pred_horizon).reset_index(drop=True)
+
+            return rows_k_to_pred_horizon
+
+        elif k + pred_horizon < num_df_rows:
+            # This happens when the k-th index is comfortably in the middle of the DataFrame and the horizon doesn't
+            # point outside of the DataFrame.
+
+            rows_k_to_pred_horizon = self.disturbance_df.iloc[k:k + pred_horizon]
+            # print(rows_k_to_pred_horizon)
             return rows_k_to_pred_horizon
 
         elif k > num_df_rows:
             # If for some reason the k goes over the number of data-points we have, the prediction horizon will be
             # filled with only zeros.
+
             num_missing_rows = pred_horizon
             rows_k_to_pred_horizon = pd.DataFrame(columns=["Poop", "Rain"], data=np.zeros((num_missing_rows, 2)))
 
             return rows_k_to_pred_horizon
 
         else:
+            # This happens when the horizon points to the outside of the DataFrame, but the k-th index is still within
+
             rows_k_to_pred_horizon = self.disturbance_df.iloc[k:-1]
             num_slice_row = rows_k_to_pred_horizon.shape[0]
 
