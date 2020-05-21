@@ -14,7 +14,21 @@ import numpy as np
 class Disturbance:
 
     def __init__(self, disturbance_config):
+        """
+        Construct the disturbance class by providing a configuration dictionary.
+         Example configuration:
+        config = {
+            "disturbance_data_name": "data/disturbance_data/hour_poop_rain.csv",
+            "use_rain": True,
+            "use_poop": True,
+            "rain_gain": 13,
+            "poop_gain": 10,
+        }
 
+        :param disturbance_config: A dictionary with the configuration
+        """
+
+        # Use pandas read_csv to load the dataset
         self.disturbance_df = pd.read_csv(disturbance_config["disturbance_data_name"], header=None,
                                           names=["Hour", "Poop", "Rain"])
 
@@ -30,12 +44,30 @@ class Disturbance:
         self.poop_gain = self.config["poop_gain"]
 
     def get_k_poop_disturbance(self, k):
-        pass
+        """
+        Get the k-th poop disturbance
+        :param k: k-th index in the simulation
+        :return: k-th index of the poop disturbance as a float
+        """
 
-    # def get_k_rain_disturbance(self, k):
-    #     return rain_dataset * self.rain_gain
+        k_poop_disturbance = self.disturbance_df["Poop"].iloc[k]
+        return k_poop_disturbance
+
+    def get_k_rain_disturbance(self, k):
+        """
+        Get the k-th rain disturbance
+        :param k: k-th index in the simulation
+        :return: k-th index of the rain disturbance as a float
+        """
+
+        k_rain_disturbance = self.disturbance_df["Rain"].iloc[k]
+        return k_rain_disturbance
 
     def get_disturbance_df(self):
+        """
+        Get the whole disturbance DataFrame
+        :return: Disturbance DataFrame
+        """
         return self.disturbance_df
 
     def get_pred_horizon_df(self, k, pred_horizon):
@@ -75,6 +107,13 @@ class Disturbance:
             return rows_k_to_pred_horizon
 
     def get_k_disturbance(self, k, pred_horizon):
+        """
+        Returns the corresponding disturbance to the k-th index and to the end of the prediction horizon.
+        :param k: k-th index in the simulation
+        :param pred_horizon: Length of the prediction horizon
+        :return: Returns the disturbance as a weighted sum of the two possibilities, either Rain or Poop. The return
+         is of type ca.DM vector.
+        """
 
         rows_k_to_pred_horizon = self.get_pred_horizon_df(k, pred_horizon)
 
@@ -104,19 +143,23 @@ class Disturbance:
 
         # create ca.DM from pandas df
         combined_disturbance = rows_k_to_pred_horizon["Combined"].tolist()
-        print(combined_disturbance)
-        print(len(combined_disturbance))
+
+        # print(combined_disturbance)
+        # print(len(combined_disturbance))
         return ca.DM(combined_disturbance)
 
     def get_k_delta_disturbance(self, k, pred_horizon):
+        """
+        Returns the corresponding disturbance to the k-th and the k-1th index and to the end of the prediction horizon.
+         The corresponding math is this: # dU_d_k = U_d_k - U_d_k - 1
+        :param k: k-th index in the simulation
+        :param pred_horizon: Length of the prediction horizon
+        :return: Returns the difference between two of the disturbance horizons. Keeps the ca.DM vector type
+        """
 
-        # dU_d_k = U_d_k - U_d_k - 1
+        k_prev_to_horizon_disturb = self.get_k_disturbance(k - 1, pred_horizon)
+        k_to_horizon_disturb = self.get_k_disturbance(k, pred_horizon)
 
-        df = self.get_k_disturbance(k - 1, pred_horizon)
-        df2 = self.get_k_disturbance(k, pred_horizon)
+        df3 = k_to_horizon_disturb - k_prev_to_horizon_disturb
 
-        df3 = df2 - df
-
-        # as a cm.DM
-        print(df3)
         return df3
