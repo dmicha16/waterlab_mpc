@@ -17,7 +17,8 @@ import numpy as np
 import time
 
 from datetime import datetime
-from pyswmm import Simulation, Nodes, Links
+from pyswmm import Simulation
+from util_scripts import disturbance_reader
 import networkcontrol as controller
 from controller import mpc, mpco
 # import plotter as plotter
@@ -101,21 +102,21 @@ def make_mpc_model(ss_model, pred_horizon, ctrl_horizon):
 
     return aug_state_space_model
 
-
-def set_reference(pred_horizon, states):
-    """
-    Create an arbitrary reference
-    # TODO: make sure that this is the right reference
-    :param pred_horizon:
-    :param states:
-    :return:
-    """
-
-    ref = ca.DM.ones(pred_horizon * states, 1)
-    for state in range(states):
-        ref[state::states] = ref[state::states] + state - 2
-
-    return ref
+# Functionality moved to different files
+# def set_reference(pred_horizon, states):
+#     """
+#     Create an arbitrary reference
+#     # TODO: make sure that this is the right reference
+#     :param pred_horizon:
+#     :param states:
+#     :return:
+#     """
+#
+#     ref = ca.DM.ones(pred_horizon * states, 1)
+#     for state in range(states):
+#         ref[state::states] = ref[state::states] + state - 2
+#
+#     return ref
 
 
 def run_simulation(time_step, pump_ids, tank_ids, junction_ids, network_df, network_path_name, complete_model,
@@ -173,7 +174,26 @@ if __name__ == "__main__":
     columns = ['timestamp', 'time_step', 'tank_volume', 'tank_depth', 'tank_overflow', 'tank_inflow', 'pump_flow']
     network_df = pd.DataFrame(columns=columns)
 
+    # Select EPA SWMM network topology .inp
     network_name = "epa_networks/project_network/project_network.inp"
+
+    # Configure the disturbance
+    # If you do not wish to use any gains on the data,
+    # set either rain_gain or poop_gain to 1
+    # It also possible to select which disturbance you want to use
+    # And later, I'll also add a functionality for the Gaussian gain into the model
+    config = {
+        "disturbance_data_name": "data/disturbance_data/hour_poop_rain.csv",
+        "use_rain": True,
+        "use_poop": True,
+        "rain_gain": 13,
+        "poop_gain": 10,
+        # "use_random": False
+    }
+
+    disturb_manager = disturbance_reader.Disturbance(config)
+
+    rows = disturb_manager.get_k_delta_disturbance(1, 10)
 
     # EPA SWMM engine step size [seconds]
     sim_step_size = 30
@@ -191,7 +211,7 @@ if __name__ == "__main__":
     plot_mpc_steps = True
 
     # Make sure to select the right type of model you want to run the MPC on
-    state_space_model = define_state_space_model(SimType.CUSTOM_MODEL, prediction_horizon,
+    state_space_model = define_state_space_model(SimType.EULER, prediction_horizon,
                                                  disturbance_magnitude)
 
     complete_model = make_mpc_model(state_space_model, prediction_horizon, control_horizon)

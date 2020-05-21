@@ -5,9 +5,11 @@ from controller import mpco
 from pyswmm import Simulation, Nodes, Links
 from enum import Enum
 
+
 class PumpSetting(Enum):
     CLOSED = 0
     OPEN = 1
+
 
 # DEPRECATED
 def set_euler_initial_conditions():
@@ -29,7 +31,7 @@ def set_euler_weight_matrices():
     :return: Q and R matrices
     """
 
-    # intially to ones to run the code
+    # initially to ones to run the code
     # TODO: add proper Q and R matrices @Casper
     Q = ca.DM.ones(7, 7)
     R = ca.DM.ones(3, 3)
@@ -82,6 +84,7 @@ def make_euler_model(simulation_type, pred_horizon, disturb_magnitude):
     # TODO: make sure when we feed the disturbance it's also lifted to Dd from D?
     disturbance_array = (np.random.rand(pred_horizon * num_inputs) - 0.5) * disturb_magnitude
 
+    # Initial conditions here are needed for the right dimensions in the MPC
     [x0, u0] = set_euler_initial_conditions()
     [Q, R] = set_euler_weight_matrices()
 
@@ -150,12 +153,10 @@ def run_euler_model_simulation(time_step, complete_model, prediction_horizon, si
     junction_n5 = Nodes(sim)[junction_ids[4]]
 
     mpc_model = complete_model["mpc_model"]
-
     operating_point = complete_model["operating_point"]
 
     # start the simulation with the pumps closed
     # https://pyswmm.readthedocs.io/en/stable/reference/nodes.html
-    # TODO: here I could make a function which prints the information about the topo
     # use these functions to set how much the pump is open for
     pump1.current_setting = PumpSetting.CLOSED
     pump2.current_setting = PumpSetting.CLOSED
@@ -170,14 +171,17 @@ def run_euler_model_simulation(time_step, complete_model, prediction_horizon, si
               tank2.depth
               ]
 
-    # u_prev
+    # u_prev, initial control input
     control_input = ca.DM.zeros(complete_model["num_inputs"], 1)
 
     # zeros for now
+    # TODO: make sure to add a proper reference
     ref = set_euler_ref(prediction_horizon, complete_model["num_states"])
 
+    # This disturbance is delta_disturbance between consecutive ones
     disturbance = []
 
+    # To make the simulation precise,
     # make sure that the flow metrics are in Cubic Meters per Second [CMS]
     for idx, step in enumerate(sim):
 
@@ -205,18 +209,22 @@ def run_euler_model_simulation(time_step, complete_model, prediction_horizon, si
             print("Quitting.")
             break
 
-    control_input = control_input + mpc_model.get_next_control_input_change()
-    pump1.current_setting = control_input[0]
-    pump2.current_setting = control_input[1]
+        # TODO: don't forget to add operating point
+        control_input = control_input + mpc_model.get_next_control_input_change()
+        pump1.current_setting = control_input[0]
+        pump2.current_setting = control_input[1]
 
-    # tank1.depth, hp1.depth, hp2.depth ... hp5.depth, tank2.depth
-    states = [tank1.depth,
-              junction_n1.depth,
-              junction_n2.depth,
-              junction_n3.depth,
-              junction_n4.depth,
-              junction_n5.depth,
-              tank2.depth
-              ]
+        # tank1.depth, hp1.depth, hp2.depth ... hp5.depth, tank2.depth
+        states = [tank1.depth,
+                  junction_n1.depth,
+                  junction_n2.depth,
+                  junction_n3.depth,
+                  junction_n4.depth,
+                  junction_n5.depth,
+                  tank2.depth
+                  ]
 
-    sim.step_advance(time_step)
+        # TODO: make sure to sync the disturbances in with the length of the time step,
+        #  or we need to use the disturbance multiple times
+        #
+        sim.step_advance(time_step)

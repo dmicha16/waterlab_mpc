@@ -1,0 +1,122 @@
+import csv
+import casadi as ca
+import pandas as pd
+
+# default='warn'
+pd.options.mode.chained_assignment = None
+import numpy as np
+
+# TODO: add to the logging the type and the gain of the dataset used for the scenario
+
+# TODO: move settings of the simulation into the json file with the same name instead of into the file name
+
+
+class Disturbance:
+
+    def __init__(self, disturbance_config):
+
+        self.disturbance_df = pd.read_csv(disturbance_config["disturbance_data_name"], header=None,
+                                          names=["Hour", "Poop", "Rain"])
+
+        # It doesnt make sense to make another column with the hours that are equivalent to the indices,
+        # we drop that row only in the memory loaded version of the df
+        self.disturbance_df = self.disturbance_df.drop(["Hour"], axis=1)
+
+        self.config = disturbance_config
+
+        self.use_rain = self.config["use_rain"]
+        self.use_poop = self.config["use_poop"]
+        self.rain_gain = self.config["rain_gain"]
+        self.poop_gain = self.config["poop_gain"]
+
+    def get_k_poop_disturbance(self, k):
+        pass
+
+    # def get_k_rain_disturbance(self, k):
+    #     return rain_dataset * self.rain_gain
+
+    def get_disturbance_df(self):
+        return self.disturbance_df
+
+    def get_pred_horizon_df(self, k, pred_horizon):
+
+        num_df_rows = self.disturbance_df.shape[0]
+
+        if k + pred_horizon < num_df_rows:
+            rows_k_to_pred_horizon = self.disturbance_df.iloc[k:k + pred_horizon]
+            print(rows_k_to_pred_horizon)
+            return rows_k_to_pred_horizon
+
+        elif k > num_df_rows:
+            # If for some reason the k goes over the number of data-points we have, the prediction horizon will be
+            # filled with only zeros.
+            num_missing_rows = pred_horizon
+            rows_k_to_pred_horizon = pd.DataFrame(columns=["Poop", "Rain"], data=np.zeros((num_missing_rows, 2)))
+
+            return rows_k_to_pred_horizon
+
+        else:
+            rows_k_to_pred_horizon = self.disturbance_df.iloc[k:-1]
+            num_slice_row = rows_k_to_pred_horizon.shape[0]
+
+            # Create missing entries and append to the series sliced to have the length of the desired horizon
+            num_missing_rows = pred_horizon - num_slice_row
+
+            # Create new Df and fill it with zeros with the length of the missing rows from the horizon
+            zero_df = pd.DataFrame(columns=["Poop", "Rain"], data=np.zeros((num_missing_rows, 2)))
+
+            # Append to rows_k_to_pred horizon, and then reset the index. This is done because pandas by
+            # default would the keep the old indices from the slice above.
+            # print(rows_k_to_pred_horizon)
+            rows_k_to_pred_horizon = rows_k_to_pred_horizon.append(zero_df).reset_index(drop=True)
+
+            # print(type(rows_k_to_pred_horizon))
+
+            return rows_k_to_pred_horizon
+
+    def get_k_disturbance(self, k, pred_horizon):
+
+        rows_k_to_pred_horizon = self.get_pred_horizon_df(k, pred_horizon)
+
+        if self.use_poop is True and self.use_rain is False:
+            # We ONLY want to use poop data
+            rows_k_to_pred_horizon["Combined"] = rows_k_to_pred_horizon.loc[:, "Poop"] * self.poop_gain
+
+        elif self.use_poop is True and self.use_rain is True:
+            # We want to use BOTH poop and rain data
+            # rows_k_to_pred_horizon["Rain"] = rows_k_to_pred_horizon["Rain"].multiply(self.rain_gain)
+
+            # df.loc[:,'quantity'] *= -1
+            rows_k_to_pred_horizon.loc[:, "Rain"] *= self.rain_gain
+            rows_k_to_pred_horizon.loc[:, "Poop"] *= self.rain_gain
+
+            rows_k_to_pred_horizon["Combined"] = rows_k_to_pred_horizon["Rain"] + rows_k_to_pred_horizon["Poop"]
+
+        elif self.use_poop is False and self.use_rain is True:
+            # We ONLY want to use rain data
+            rows_k_to_pred_horizon["Combined"] = rows_k_to_pred_horizon["Rain"] * self.rain_gain
+
+        else:
+            # We don't want to use either of the disturbances
+            # Obviously this doesnt much make sense in our setup, but just in case, it returns
+            # a vector of zeros for the entire prediction horizon
+            rows_k_to_pred_horizon["Combined"] = rows_k_to_pred_horizon["Rain"] * 0
+
+        # create ca.DM from pandas df
+        combined_disturbance = rows_k_to_pred_horizon["Combined"].tolist()
+        print(combined_disturbance)
+        print(len(combined_disturbance))
+        return ca.DM(combined_disturbance)
+
+    def get_k_delta_disturbance(self, k, pred_horizon):
+
+        # dU_d_k = U_d_k - U_d_k - 1
+
+        df = self.get_k_disturbance(k - 1, pred_horizon)
+        df2 = self.get_k_disturbance(k, pred_horizon)
+
+        df3 = df2 - df
+
+        # as a cm.DM
+        print(df3)
+        return df3
