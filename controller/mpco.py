@@ -36,6 +36,9 @@ class MpcObj:
         self.inputs = input_matrix.size2()
         self.disturbances = input_matrix_d.size2()
 
+        self.prediction_horizon = prediction_horizon
+        self.control_horizon = control_horizon
+
         # handle None inputs
         if input_matrix_d is None:
             self.input_matrix_d = input_matrix
@@ -88,8 +91,6 @@ class MpcObj:
         # Save dynamics and solver variables
         self.dynamics_matrix = dynamics_matrix
         self.input_matrix = input_matrix
-        self.prediction_horizon = prediction_horizon
-        self.control_horizon = control_horizon
         self.state_cost = state_cost
         self.state_cost_block_matrix = mpc.blockdiag(state_cost, prediction_horizon)
         self.input_change_cost = input_change_cost

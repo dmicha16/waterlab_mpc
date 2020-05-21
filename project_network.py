@@ -196,7 +196,7 @@ if __name__ == "__main__":
     rows = disturb_manager.get_k_delta_disturbance(1, 10)
 
     # EPA SWMM engine step size [seconds]
-    sim_step_size = 30
+    sim_step_size = 60*60
 
     # These have to be the names of the pumps and tanks from EPA SWMM
     pumps = ["FP1", "FP2"]

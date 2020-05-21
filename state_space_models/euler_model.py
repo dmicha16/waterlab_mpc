@@ -33,8 +33,8 @@ def set_euler_weight_matrices():
 
     # initially to ones to run the code
     # TODO: add proper Q and R matrices @Casper
-    Q = ca.DM.ones(7, 7)
-    R = ca.DM.ones(3, 3)
+    Q = ca.DM(np.identity(7))
+    R = ca.DM(np.identity(3))
 
     return [Q, R]
 
@@ -121,18 +121,17 @@ def make_euler_mpc_model(state_space_model, prediction_horizon, control_horizon)
     num_states = state_space_model["num_states"]
 
     ref = set_euler_ref(prediction_horizon, num_states)
-
+    # TODO add constraints to model
     mpc_model = mpco.MpcObj(state_space_model["system_model"],
                             state_space_model["b_matrix"],
                             control_horizon,
                             prediction_horizon,
                             state_space_model["Q"],
                             state_space_model["R"],
-                            state_space_model["x0"],
-                            state_space_model["u0"],
-                            ref,
-                            state_space_model["b_disturbance"],
-                            state_space_model["disturbance_array"])
+                            initial_control_signal=state_space_model["u0"],
+                            ref=ref,
+                            input_matrix_d=state_space_model["b_disturbance"],
+                            )
 
     state_space_model["mpc_model"] = mpc_model
 
@@ -158,8 +157,8 @@ def run_euler_model_simulation(time_step, complete_model, prediction_horizon, si
     # start the simulation with the pumps closed
     # https://pyswmm.readthedocs.io/en/stable/reference/nodes.html
     # use these functions to set how much the pump is open for
-    pump1.current_setting = PumpSetting.CLOSED
-    pump2.current_setting = PumpSetting.CLOSED
+    pump1.target_setting = int(0)
+    pump2.target_setting = int(0)
 
     # x initial conditions
     states = [tank1.depth,
@@ -188,12 +187,11 @@ def run_euler_model_simulation(time_step, complete_model, prediction_horizon, si
         # TODO: finish filling of dataframe
         # network_df = network_df.append(pd.Series([tank1.volume, tank1.depth, tank1.flooding, tank1.total_inflow,
         #                                           pump1.flow], index=network_df.columns), ignore_index=True)
-
         user_key_input = input("press s key to step, or \'r\' to run all steps, or q to quit")
         # TODO: try non-blocking user input to fix printing like this
         if user_key_input == "r":
             mpc_model.plot_progress(options={'drawU': 'U'}, ignore_inputs=[1, 2])
-            mpc_model.step(states, control_input, ref, disturbance)
+            mpc_model.step(states, control_input, ref)
 
         elif user_key_input == "s":
             mpc_model.plot_progress(options={'drawU': 'U'}, ignore_inputs=[1, 2])
@@ -211,8 +209,8 @@ def run_euler_model_simulation(time_step, complete_model, prediction_horizon, si
 
         # TODO: don't forget to add operating point
         control_input = control_input + mpc_model.get_next_control_input_change()
-        pump1.current_setting = control_input[0]
-        pump2.current_setting = control_input[1]
+        pump1.target_setting = control_input[0]
+        pump2.target_setting = control_input[1]
 
         # tank1.depth, hp1.depth, hp2.depth ... hp5.depth, tank2.depth
         states = [tank1.depth,
