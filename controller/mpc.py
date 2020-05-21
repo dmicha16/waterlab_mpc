@@ -67,7 +67,8 @@ def gen_mpc_solver(A, B, Hu, Hp, Q, R, B_d=None):
     # Cost function:
     # Cost = (Z - T)' * Q * (Z - T) + dU' * R * dU
     error = predicted_states - ref  # e = (Z - T)
-    quadratic_cost = error.T @ Q @ error + du.T @ R @ du
+    quadratic_cost = error.T @ Q @ error\
+                     + du.T @ R @ du
 
     # Setup Solver
     # set print level: search for 'printLevel' in link

@@ -196,7 +196,7 @@ if __name__ == "__main__":
     rows = disturb_manager.get_k_delta_disturbance(1, 10)
 
     # EPA SWMM engine step size [seconds]
-    sim_step_size = 60*60
+    sim_step_size = 60
 
     # These have to be the names of the pumps and tanks from EPA SWMM
     pumps = ["FP1", "FP2"]
@@ -204,8 +204,8 @@ if __name__ == "__main__":
     junctions = ["N1", "N1", "N2", "N3", "N4", "N5"]
 
     # TODO: make this into a dictionary
-    prediction_horizon = 40
-    control_horizon = 40
+    prediction_horizon = 4
+    control_horizon = 4
     disturbance_magnitude = 5
     steps_between_plots = 3
     plot_mpc_steps = True

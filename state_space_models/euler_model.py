@@ -20,7 +20,7 @@ def set_euler_initial_conditions():
 
     # TODO: figure out how to get the initial conditions from pyswmm here
     x0 = ca.DM.zeros(7, 1)
-    u0 = ca.DM.zeros(3, 1)
+    u0 = ca.DM.zeros(4, 1)
 
     return [x0, u0]
 
@@ -34,7 +34,7 @@ def set_euler_weight_matrices():
     # initially to ones to run the code
     # TODO: add proper Q and R matrices @Casper
     Q = ca.DM(np.identity(7))
-    R = ca.DM(np.identity(3))
+    R = ca.DM(np.identity(4))
 
     return [Q, R]
 
@@ -71,7 +71,8 @@ def make_euler_model(simulation_type, pred_horizon, disturb_magnitude):
                 [0, 0, 0, 0, -80.57745346, 696.1970811, -76.82745346],
                 [0, 0, 0, 0, 0, -618.3696276, 615.6196276]])
 
-    Bp = ca.DM([[-24, 0, -24, 0], [90, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, -144, 0, -144]])
+    Bp = ca.DM(
+        [[-24, 0, -24, 0], [90, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, -144, 0, -144]])
     Bp_d = ca.DM([24, 0, 0, 0, 0, 0, 0])
 
     operating_point = ca.DM([0, -152.1549069, 0, 0, 0, -1229.239255, 1381.394162])
@@ -139,7 +140,6 @@ def make_euler_mpc_model(state_space_model, prediction_horizon, control_horizon)
 
 
 def run_euler_model_simulation(time_step, complete_model, prediction_horizon, sim, pump_ids, tank_ids, junction_ids):
-
     pump1 = Links(sim)[pump_ids[0]]
     pump2 = Links(sim)[pump_ids[1]]
     tank1 = Nodes(sim)[tank_ids[0]]
@@ -190,22 +190,9 @@ def run_euler_model_simulation(time_step, complete_model, prediction_horizon, si
         user_key_input = input("press s key to step, or \'r\' to run all steps, or q to quit")
         # TODO: try non-blocking user input to fix printing like this
         if user_key_input == "r":
-            mpc_model.plot_progress(options={'drawU': 'U'}, ignore_inputs=[1, 2])
-            mpc_model.step(states, control_input, ref)
-
-        elif user_key_input == "s":
-            mpc_model.plot_progress(options={'drawU': 'U'}, ignore_inputs=[1, 2])
-            mpc_model.plot_step({'drawU': 'both'})
-            # user_key_input = input("press s key to step, or \'r\' to run all steps, or q to quit")
-
-        elif user_key_input == "rw":
-            # TODO: make functionality in MPC to not plot each step, only the last file
-            print("Running the simulation without plots.")
-            mpc_model.step(states, control_input, ref, disturbance)
-
-        elif user_key_input == "q":
-            print("Quitting.")
-            break
+            print('R')
+        mpc_model.plot_progress(options={'drawU': 'U'})
+        mpc_model.step(states, control_input)
 
         # TODO: don't forget to add operating point
         control_input = control_input + mpc_model.get_next_control_input_change()
@@ -213,6 +200,9 @@ def run_euler_model_simulation(time_step, complete_model, prediction_horizon, si
         pump2.target_setting = control_input[1]
 
         # tank1.depth, hp1.depth, hp2.depth ... hp5.depth, tank2.depth
+
+        sim.step_advance(time_step)
+
         states = [tank1.depth,
                   junction_n1.depth,
                   junction_n2.depth,
@@ -220,9 +210,4 @@ def run_euler_model_simulation(time_step, complete_model, prediction_horizon, si
                   junction_n4.depth,
                   junction_n5.depth,
                   tank2.depth
-                  ]
-
-        # TODO: make sure to sync the disturbances in with the length of the time step,
-        #  or we need to use the disturbance multiple times
-        #
-        sim.step_advance(time_step)
+                  ] - operating_point

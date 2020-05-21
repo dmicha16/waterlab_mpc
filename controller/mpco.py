@@ -58,23 +58,23 @@ class MpcObj:
 
             # Slew rate bounds
         if lower_bounds_slew_rate is None:
-            self.lower_bounds_slew_rate = ca.DM.zeros(self.inputs * self.prediction_horizon, 1) - ca.inf
+            self.lower_bounds_slew_rate = ca.DM.zeros(self.inputs * self.control_horizon, 1) - ca.inf
         else:
             self.lower_bounds_slew_rate = lower_bounds_slew_rate
 
         if upper_bounds_slew_rate is None:
-            self.upper_bounds_slew_rate = ca.DM.zeros(self.inputs * self.prediction_horizon, 1) + ca.inf
+            self.upper_bounds_slew_rate = ca.DM.zeros(self.inputs * self.control_horizon, 1) + ca.inf
         else:
             self.upper_bounds_slew_rate = upper_bounds_slew_rate
 
             # Input bounds
         if lower_bounds_input is None:
-            self.lower_bounds_input = ca.DM.zeros(self.inputs * self.prediction_horizon, 1) - ca.inf
+            self.lower_bounds_input = ca.DM.zeros(self.inputs * self.control_horizon, 1) - ca.inf
         else:
             self.lower_bounds_input = lower_bounds_input
 
         if upper_bounds_input is None:
-            self.upper_bounds_input = ca.DM.zeros(self.inputs * self.prediction_horizon, 1) + ca.inf
+            self.upper_bounds_input = ca.DM.zeros(self.inputs * self.control_horizon, 1) + ca.inf
         else:
             self.upper_bounds_input = upper_bounds_input
 
@@ -251,7 +251,7 @@ class MpcObj:
         self.upsilon = mpc.gen_upsilon(self.dynamics_matrix, self.input_matrix, self.prediction_horizon)
         self.upsilon_d = mpc.gen_upsilon(self.dynamics_matrix, self.input_matrix_d, self.prediction_horizon)
         self.theta = mpc.gen_theta(self.upsilon, self.input_matrix, self.control_horizon)
-        self.theta_d = mpc.gen_theta(self.upsilon_d, self.input_matrix_d, control_horizon)
+        self.theta_d = mpc.gen_theta(self.upsilon_d, self.input_matrix_d, self.prediction_horizon)
         self.solver = mpc.gen_mpc_solver(self.dynamics_matrix, self.input_matrix, self.control_horizon,
                                          self.prediction_horizon,
                                          self.state_cost_block_matrix, self.input_change_cost_block_matrix,
