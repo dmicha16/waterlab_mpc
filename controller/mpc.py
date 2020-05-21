@@ -206,6 +206,11 @@ def blockdiag(Q, Hp):
     return R
 
 
-def gen_solver_input(x0, u_prev, ref, disturbance=None):
+def gen_solver_input(x0, u_prev, ref, ud_prev, disturbance):
     # TODO: Allow disturbance to be None?
-    return ca.vertcat(ca.vec(x0), ca.vertcat(ca.vec(u_prev), ca.vertcat(ca.vec(ref), ca.vec(disturbance))))
+    return ca.vertcat(ca.vec(x0),
+                      ca.vertcat(ca.vec(u_prev),
+                                 ca.vertcat(ca.vec(ref),
+                                            ca.vertcat(ca.vec(ud_prev),
+                                                       ca.vec(disturbance)))))
+
