@@ -9,19 +9,16 @@ Created on Sun May 14 20:12:58 2020
 import matplotlib.pyplot as plt
 
 import os
+import json
 
 import pandas as pd
-import casadi as ca
-import numpy as np
-
-import time
 
 from datetime import datetime
 from pyswmm import Simulation
 from util_scripts import disturbance_reader
 import networkcontrol as controller
 from controller import mpc, mpco
-# import plotter as plotter
+
 from enum import Enum
 
 from state_space_models import euler_model,\
@@ -102,46 +99,42 @@ def make_mpc_model(ss_model, pred_horizon, ctrl_horizon):
 
     return aug_state_space_model
 
-# Functionality moved to different files
-# def set_reference(pred_horizon, states):
-#     """
-#     Create an arbitrary reference
-#     # TODO: make sure that this is the right reference
-#     :param pred_horizon:
-#     :param states:
-#     :return:
-#     """
-#
-#     ref = ca.DM.ones(pred_horizon * states, 1)
-#     for state in range(states):
-#         ref[state::states] = ref[state::states] + state - 2
-#
-#     return ref
+
+def run_simulation(simul_config, data_df, complete_sys_model):
+
+    if simul_config["sim_type"] == SimType.CUSTOM_MODEL:
+        custom_model.run_custom_model_simulation(complete_model, simul_config["prediction_horizon"])
+
+    with Simulation(simul_config["network_name"]) as sim:
+
+        if simul_config["sim_type"] == SimType.EULER:
+            data_df = euler_model.run_euler_model_simulation(simul_config["sim_step_size"],
+                                                             complete_sys_model,
+                                                             simul_config["prediction_horizon"],
+                                                             sim,
+                                                             simul_config["pumps"],
+                                                             simul_config["tanks"],
+                                                             simul_config["junctions"],
+                                                             data_df)
+
+        elif simul_config["sim_type"] == SimType.PREISMANN:
+            data_df = preismann_model.run_preismann_model_simulation(simul_config["sim_step_size"],
+                                                                     complete_sys_model,
+                                                                     simul_config["prediction_horizon"],
+                                                                     sim,
+                                                                     simul_config["pumps"],
+                                                                     simul_config["tanks"],
+                                                                     simul_config["junctions"],
+                                                                     data_df)
+        else:
+            # There is no other type of simulation, you should probably make sure you selected the correct one.
+            print("No simulation is selected.")
+            pass
+
+    return data_df
 
 
-def run_simulation(time_step, pump_ids, tank_ids, junction_ids, network_df, network_path_name, complete_model,
-                   steps_between_plots, plot_mpc_steps):
-    print("Running Simulation!")
-    time.sleep(1)
-
-    mpc_model = complete_model["mpc_model"]
-
-    if state_space_model["sim_type"] == SimType.CUSTOM_MODEL:
-        custom_model.run_custom_model_simulation(complete_model, prediction_horizon)
-
-    with Simulation(network_path_name) as sim:
-
-        if state_space_model["sim_type"] == SimType.EULER:
-            euler_model.run_euler_model_simulation(time_step, complete_model, prediction_horizon, sim,
-                                                   pump_ids, tank_ids, junction_ids)
-
-        elif state_space_model["sim_type"] == SimType.PREISMANN:
-            preismann_model.run_preismann_model_simulation(complete_model, prediction_horizon, sim)
-
-    return network_df
-
-
-def save_data(sim_df, simulation_type):
+def save_data(sim_df, simulation_config, disturbance_config):
     """
     Saves DataFrames into folders named by date. Adds timestamp and simulation type into the name.
     Output is in terms of python pickles of the df.
@@ -149,6 +142,9 @@ def save_data(sim_df, simulation_type):
     :param simulation_type: Type of the simulation
     :return: None
     """
+
+    simulation_type = simulation_config["sim_type"].name
+    simulation_config["sim_type"] = simulation_config["sim_type"].name
 
     today = datetime.now()
     timestamp_day = today.strftime("%m_%d_%y")
@@ -161,28 +157,62 @@ def save_data(sim_df, simulation_type):
 
     # TODO: remove enum dot from name
     file_name = f"{path}/mpc_simulation_df_{timestamp_hour}_{simulation_type}.pkl"
+    json_file_name = file_name = f"{path}/mpc_simulation_df_{timestamp_hour}_{simulation_type}.json"
 
-    print(file_name)
+    combined_dict = {
+        "date": timestamp_day,
+        "hour": timestamp_hour
+    }
+    combined_dict.update(simulation_config)
+    combined_dict.update(disturbance_config)
 
     sim_df.to_pickle(file_name)
+
+    with open(json_file_name, 'w') as json_file:
+        json.dump(combined_dict, json_file, indent=4)
 
 
 if __name__ == "__main__":
     print_welcome_msg()
 
     # create columns and pandas DataFrame to store data
-    columns = ['timestamp', 'time_step', 'tank_volume', 'tank_depth', 'tank_overflow', 'tank_inflow', 'pump_flow']
+    columns = ['timestamp',
+               'time_step',
+               'tank_volume',
+               'tank_depth',
+               'tank_overflow',
+               'tank_inflow',
+               'pump_flow']
     network_df = pd.DataFrame(columns=columns)
 
-    # Select EPA SWMM network topology .inp
-    network_name = "epa_networks/project_network/project_network.inp"
+    sim_config = {
+
+        # Select EPA SWMM network topology .inp
+        "network_name": "epa_networks/project_network/project_network.inp",
+        
+        # EPA SWMM engine step size [seconds]
+        "sim_type": SimType.EULER,
+        "sim_step_size": 60,
+
+        # These have to be the names of the pumps and tanks from EPA SWMM
+        "pumps": ["FP1", "FP2"],
+        "tanks": ["T1", "T2"],
+        "junctions": ["N1", "N1", "N2", "N3", "N4", "N5"],
+
+        # MPC related configuration
+        "prediction_horizon": 4,
+        "control_horizon": 4,
+        "disturbance_magnitude": 5,
+        "steps_between_plots": 3,
+        "plot_mpc_steps": True
+    }
 
     # Configure the disturbance
     # If you do not wish to use any gains on the data,
     # set either rain_gain or poop_gain to 1
     # It also possible to select which disturbance you want to use
     # And later, I'll also add a functionality for the Gaussian gain into the model
-    config = {
+    disturb_config = {
         "disturbance_data_name": "data/disturbance_data/hour_poop_rain.csv",
         "use_rain": True,
         "use_poop": True,
