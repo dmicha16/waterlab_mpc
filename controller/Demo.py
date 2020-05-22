@@ -23,6 +23,14 @@ Ap = ca.DM([[1, 0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 1.342957558, -1.623415116, 1.2],
             [0, 0, 0, 0, 0, 1.3, -1.623415116]])
 
+Ap = ca.DM([[1, 0, 0, 0, 0, 0, 0],
+                [0, -0.3429575580, 1.280457558, 0, 0, 0, 0],
+                [0, 1.342957558, -1.623415116, 1.280457558, 0, 0, 0],
+                [0, 0, 1.342957558, -1.623415116, 1.280457558, 0, 0],
+                [0, 0, 0, 1.342957558, -1.623415116, 1.280457558, 0],
+                [0, 0, 0, 0, 1.342957558, -10.58661802, 10.24366046],
+                [0, 0, 0, 0, 0, 10.30616046, -9.24366046]])
+
 Bp = ca.DM([[-2 / 5, 0, -2 / 5, 0], [3 / 2, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0],
             [0, -12 / 5, 0, -12 / 5]])
 Bp_d = ca.DM([2 / 5, 0, 0, 0, 0, 0, 0])
@@ -39,11 +47,12 @@ rand_A = np.random.rand(Ap.size1(), Ap.size2())
 A = Ap * const_var + (np.random.rand(Ap.size1(), Ap.size2()) - 0.5) * rand_var
 B = Bp * const_var + (np.random.rand(Bp.size1(), Bp.size2()) - 0.5) * rand_var
 B_d = Bp_d * const_var + (np.random.rand(Bp_d.size1(), Bp_d.size2()) - 0.5) * rand_var
-Hp = 15
-Hu = 15
+Hp = 8
+Hu = Hp
 
-dist_magnitude = 0.05
-dist = ca.DM((np.random.rand(Hp * disturbances) - 0.0) * dist_magnitude)
+dist_magnitude = 0.001
+dist = ca.DM((np.random.rand(Hp * disturbances) +0) * dist_magnitude)
+dist = ca.DM.ones(Hp * disturbances)*dist_magnitude
 initial_disturbance = ca.DM.zeros(disturbances)
 
 Q = ca.DM([[1, 0, 0], [0, 2, 0], [0, 0, 3]])
@@ -54,7 +63,7 @@ Q = ca.DM(np.identity(7)) * 1
 Q[0,0] = 10
 R = ca.DM([[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 1000, 0], [0, 0, 0, 1000]])
 
-x0 = ca.DM([[2], [0], [0], [0], [0], [0], [0], ])
+x0 = ca.DM([[2], [0], [0], [0], [0], [0], [0]])
 u0 = ca.DM([0, 0, 0, 0])
 
 ref = ca.DM.ones(Hp * states, 1)
@@ -66,7 +75,15 @@ lower_bounds_slew_rate = ca.DM.ones(inputs) * -10
 lower_bounds_states = ca.DM.ones(states) * 0
 upper_bounds_input = ca.DM.ones(inputs) * 111
 upper_bounds_slew_rate = ca.DM.ones(inputs) * 100
-upper_bounds_states = ca.DM.ones(states) * 100
+upper_bounds_states = ca.DM.ones(states) * 1000
+# lower_bounds_input = None
+# lower_bounds_slew_rate = None
+# lower_bounds_states = None
+# upper_bounds_input = None
+# upper_bounds_slew_rate = None
+# upper_bounds_states = None
+#lower_bounds_states = operating_point -100
+
 mmpc = mpco.MpcObj(Ap, Bp, Hu, Hp, Q, R, ref=ref, initial_control_signal=u0, input_matrix_d=Bp_d,
                    lower_bounds_input=lower_bounds_input,
                    lower_bounds_slew_rate=lower_bounds_slew_rate, upper_bounds_slew_rate=upper_bounds_slew_rate,
@@ -85,17 +102,14 @@ x_array = x
 
 u_array = u
 looper = True
-step_size = 3
+step_size = 10
 cum_dist = ca.DM(initial_disturbance)
 for j in range(1, steps):
 
     # this model is instead of the EPA swmm
     u = u + mmpc.get_next_control_input_change()
-    cum_dist = cum_dist + mmpc.get_next_disturbance_change()
-    x = A @ x + B @ u + B_d @ cum_dist
-    nd = ca.DM((np.random.rand(disturbances) - 0.5) * dist_magnitude / 2)
 
-    dist = ca.vertcat(dist[disturbances:], nd)
+    x = A @ x + B @ u + B_d @ cum_dist
 
     if looper and j % step_size == 0:
         loop_in = input("press any key to step, or \'r\' to run all steps")
@@ -104,3 +118,8 @@ for j in range(1, steps):
         # mmpc.plot_step({'drawU': 'both'})
 
     mmpc.step(x, u, ref, prev_disturbance=cum_dist, disturbance=dist)
+    nd = ca.DM((np.random.rand(disturbances) - 0.5) * dist_magnitude / 2)
+    nd = ca.DM.ones(disturbances) * 0
+
+    dist = ca.vertcat(dist[disturbances:], nd)
+    cum_dist = cum_dist + mmpc.get_next_disturbance_change()

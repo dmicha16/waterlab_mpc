@@ -77,7 +77,7 @@ def gen_mpc_solver(A, B, Hu, Hp, Q, R, B_d=None, S=None):
     # Setup Solver
     # set print level: search for 'printLevel' in link
     # http://casadi.sourceforge.net/v3.1.0/api/internal/de/d94/qpoases__interface_8cpp_source.html
-    opts = dict(printLevel='low')
+    opts = dict(printLevel='debug_iter')
     quadratic_problem = {'x': du, 'p': input_variables, 'f': quadratic_cost, 'g': constraints}
     mpc_solver = ca.qpsol('mpc_solver', 'qpoases', quadratic_problem, opts)
     # print(quadratic_cost)
@@ -155,7 +155,7 @@ def gen_theta(upsilon, B, Hu):
         reduced_upsilon = upsilon[0:(upsilon.shape[0] - B.shape[0] * col_idx):1, :]
 
         new_col = ca.vertcat(zeros_matrix, reduced_upsilon)
-        a = 1
+
         Theta = ca.horzcat(Theta, new_col)
 
     return Theta
@@ -185,12 +185,18 @@ def gen_predicted_states(psi, x0, upsilon, u_prev, theta, du, upsilon_d=None, ud
     if ud_prev is None:
         ud_prev = ca.DM.zeros(upsilon_d.size2(), 1)
         print("Since no dud has been entered: dud = 0")
+    # Hp = 6
+    # o = ca.vec(ca.DM([0, -2.535915115, 0, 0, 0, -20.48732092, 23.02323604]))
+    # op = o
+    # for i in range(0, Hp):
+    #     op = ca.vertcat(op, o)
 
     x = psi @ x0 + \
         upsilon @ u_prev + \
         theta @ du + \
         upsilon_d @ ud_prev + \
-        theta_d @ dud
+        theta_d @ dud\
+        # + op
     return x
 
 
