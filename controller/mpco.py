@@ -8,7 +8,7 @@ class MpcObj:
 
     def __init__(self, dynamics_matrix, input_matrix, control_horizon, prediction_horizon, state_cost,
                  input_change_cost, input_cost=None,
-                 ref=None, initial_control_signal=None, input_matrix_d=None,
+                 ref=None, initial_control_signal=None, input_matrix_d=None, operating_point=None,
                  lower_bounds_states=None, upper_bounds_states=None,
                  lower_bounds_slew_rate=None, upper_bounds_slew_rate=None,  # TODO slew
                  lower_bounds_input=None, upper_bounds_input=None):
@@ -49,6 +49,11 @@ class MpcObj:
             self.input_cost = input_change_cost
         else:
             self.input_cost = input_cost
+
+        if operating_point is None:
+            self.operating_point = ca.DM.zeros(self.states)
+        else:
+            self.operating_point = operating_point
 
         # State bounds
         if lower_bounds_states is None:
@@ -276,7 +281,7 @@ class MpcObj:
         return self.log_dU[:, 0:]
 
     def lift(self, dynamics_matrix=None, input_matrix=None, control_horizon=None, prediction_horizon=None,
-             state_cost=None, input_change_cost=None, input_matrix_d=None):
+             state_cost=None, input_change_cost=None, input_matrix_d=None, operating_point=None):
         # TODO: update
         if dynamics_matrix is not None and dynamics_matrix.shape == self.dynamics_matrix.shape:
             self.dynamics_matrix = dynamics_matrix
@@ -303,7 +308,7 @@ class MpcObj:
         self.solver = mpc.gen_mpc_solver(self.dynamics_matrix, self.input_matrix, self.control_horizon,
                                          self.prediction_horizon,
                                          self.state_cost_block_matrix, self.input_change_cost_block_matrix,
-                                         self.input_matrix_d)
+                                         self.input_matrix_d, operating_point=operating_point)
         return self.solver
 
     def print_result(self):

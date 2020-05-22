@@ -66,6 +66,8 @@ R = ca.DM([[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 1000, 0], [0, 0, 0, 1000]])
 x0 = ca.DM([[2], [0], [0], [0], [0], [0], [0]])
 u0 = ca.DM([0, 0, 0, 0])
 
+operating_point = ca.DM([0., -1.2305, 0., 0., 0., -3.6216, 4.8521])
+
 ref = ca.DM.ones(Hp * states, 1)
 for state in range(states):
     ref[state::states] = ref[state::states] + state * 0.1
@@ -88,7 +90,7 @@ mmpc = mpco.MpcObj(Ap, Bp, Hu, Hp, Q, R, ref=ref, initial_control_signal=u0, inp
                    lower_bounds_input=lower_bounds_input,
                    lower_bounds_slew_rate=lower_bounds_slew_rate, upper_bounds_slew_rate=upper_bounds_slew_rate,
                    upper_bounds_input=upper_bounds_input, lower_bounds_states=lower_bounds_states,
-                   upper_bounds_states=upper_bounds_states)
+                   upper_bounds_states=upper_bounds_states,operating_point=operating_point)
 mmpc.step(x0, u0, ref, initial_disturbance, dist)
 
 mmpc.plot_progress({'drawU': 'U'})

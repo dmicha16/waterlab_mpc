@@ -1,7 +1,7 @@
 import casadi as ca
 
 
-def gen_mpc_solver(A, B, Hu, Hp, Q, R, B_d=None, S=None):
+def gen_mpc_solver(A, B, Hu, Hp, Q, R, B_d=None, S=None, operating_point=None):
     '''
     Consult at p55 in Jan M. book for better understanding as well as casadi documentation
         :param A:(mxm) Model dynamics matrix of type casadi.DM
@@ -24,6 +24,9 @@ def gen_mpc_solver(A, B, Hu, Hp, Q, R, B_d=None, S=None):
     number_of_states = A.size1()
     number_of_inputs = B.size2()
     number_of_disturbances = B_d.size2()
+
+    if operating_point is None:
+        operating_point = ca.DM.zeros(number_of_states)
 
     # Index for input variable
     initial_state_index_end = number_of_states
@@ -58,7 +61,8 @@ def gen_mpc_solver(A, B, Hu, Hp, Q, R, B_d=None, S=None):
     theta = gen_theta(upsilon, B, Hu)
     upsilon_d = gen_upsilon(A, B_d, Hp)
     theta_d = gen_theta(upsilon_d, B_d, Hp)
-    predicted_states = gen_predicted_states(psi, x0, upsilon, u_prev, theta, du, upsilon_d, ud_prev, theta_d, dud)
+    predicted_states = gen_predicted_states(psi, x0, upsilon, u_prev, theta, du, upsilon_d, ud_prev, theta_d, dud,
+                                            op=operating_point)
 
     # Setup constraints
     # construct U fom dU
@@ -161,7 +165,8 @@ def gen_theta(upsilon, B, Hu):
     return Theta
 
 
-def gen_predicted_states(psi, x0, upsilon, u_prev, theta, du, upsilon_d=None, ud_prev=None, theta_d=None, dud=None):
+def gen_predicted_states(psi, x0, upsilon, u_prev, theta, du, upsilon_d=None, ud_prev=None, theta_d=None, dud=None,
+                         op=None):
     """
     Consult at p55 in Jan M. book for better understanding
     Note that the added disturbance is modeled as an input disturbance
@@ -185,6 +190,13 @@ def gen_predicted_states(psi, x0, upsilon, u_prev, theta, du, upsilon_d=None, ud
     if ud_prev is None:
         ud_prev = ca.DM.zeros(upsilon_d.size2(), 1)
         print("Since no dud has been entered: dud = 0")
+    if ud_prev is None:
+        ud_prev = ca.DM.zeros(upsilon_d.size2(), 1)
+        print("Since no dud has been entered: dud = 0")
+    if op is None:
+        op = ca.DM.zeros(psi.size2())
+    upsilon_op = gen_upsilon(psi[:psi.size2(), :], ca.DM.eye(psi.size2()), int(psi.size1() / psi.size2()))
+
     # Hp = 6
     # o = ca.vec(ca.DM([0, -2.535915115, 0, 0, 0, -20.48732092, 23.02323604]))
     # op = o
@@ -195,8 +207,8 @@ def gen_predicted_states(psi, x0, upsilon, u_prev, theta, du, upsilon_d=None, ud
         upsilon @ u_prev + \
         theta @ du + \
         upsilon_d @ ud_prev + \
-        theta_d @ dud\
-        # + op
+        theta_d @ dud + \
+        upsilon_op @ op
     return x
 
 
