@@ -217,8 +217,8 @@ if __name__ == "__main__":
         "junctions": ["N1", "N1", "N2", "N3", "N4", "N5"],
 
         # MPC related configuration
-        "prediction_horizon": 4,
-        "control_horizon": 4,
+        "prediction_horizon": 10,
+        "control_horizon": 6,
         "disturbance_magnitude": 5,
         "steps_between_plots": 3,
         "plot_mpc_steps": True
@@ -238,14 +238,13 @@ if __name__ == "__main__":
         # "use_random": False
     }
 
-    # Make sure to select the right type of model you want to run the MPC on
-    # state_space_model = define_state_space_model(sim_config["sim_type"], sim_config["prediction_horizon"],
-    #                                         sim_config["disturbance_magnitude"])
-    #
-    # complete_model = make_mpc_model(state_space_model, sim_config["prediction_horizon"], sim_config["control_horizon"])
-    #
-    # simulation_df = run_simulation(sim_config, network_df, complete_model)
-    simulation_df = network_df
+    #Make sure to select the right type of model you want to run the MPC on
+    state_space_model = define_state_space_model(sim_config["sim_type"], sim_config["prediction_horizon"],
+                                            sim_config["disturbance_magnitude"])
+
+    complete_model = make_mpc_model(state_space_model, sim_config["prediction_horizon"], sim_config["control_horizon"])
+
+    simulation_df = run_simulation(sim_config, network_df, complete_model)
 
     save_data(simulation_df, sim_config, disturb_config)
 

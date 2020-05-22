@@ -15,6 +15,7 @@ def gen_mpc_solver(A, B, Hu, Hp, Q, R, B_d=None, S=None):
 
     if B_d is None:
         B_d = B
+    # TODO: Fix cost on Inputs u - Weight matrix S
     if S is None:
         S = ca.DM.zeros(R.size1(), R.size2())
         S = R
@@ -73,7 +74,6 @@ def gen_mpc_solver(A, B, Hu, Hp, Q, R, B_d=None, S=None):
     quadratic_cost = error.T @ Q @ error \
                      + du.T @ R @ du \
                      + U.T @ S @ U
-
     # Setup Solver
     # set print level: search for 'printLevel' in link
     # http://casadi.sourceforge.net/v3.1.0/api/internal/de/d94/qpoases__interface_8cpp_source.html

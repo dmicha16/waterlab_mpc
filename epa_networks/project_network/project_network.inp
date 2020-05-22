@@ -62,7 +62,7 @@ out              0          FREE                        NO
 [STORAGE]
 ;;Name           Elev.    MaxDepth   InitDepth  Shape      Curve Name/Params            N/A      Fevap    Psi      Ksat     IMD     
 ;;-------------- -------- ---------- ----------- ---------- ---------------------------- -------- --------          -------- --------
-T1               0        3          0          FUNCTIONAL 150       0         0        0        0       
+T1               0        3          1          FUNCTIONAL 150       0         0        0        0       
 T2               9        2          0          FUNCTIONAL 200       0         0        0        0       
 
 [CONDUITS]
@@ -88,6 +88,11 @@ P2               CIRCULAR     1                0          0          0          
 P3               CIRCULAR     1                0          0          0          1                    
 P4               CIRCULAR     1                0          0          0          1                    
 P5               CIRCULAR     1                0          0          0          1                    
+
+[INFLOWS]
+;;Node           Constituent      Time Series      Type     Mfactor  Sfactor  Baseline Pattern
+;;-------------- ---------------- ---------------- -------- -------- -------- -------- --------
+T1               FLOW             ""               FLOW     1.0      1.0      1       
 
 [CURVES]
 ;;Name           Type       X-Value    Y-Value   

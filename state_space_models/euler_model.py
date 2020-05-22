@@ -5,8 +5,6 @@ from controller import mpco
 from pyswmm import Simulation, Nodes, Links
 from enum import Enum
 
-from proposal_network import tank1
-from util_scripts import network_logger
 import pandas as pd
 
 
@@ -36,8 +34,9 @@ def set_euler_weight_matrices():
 
     # initially to ones to run the code
     # TODO: add proper Q and R matrices @Casper
-    Q = ca.DM(np.identity(7))
-    R = ca.DM(np.identity(4))
+    Q = ca.DM(np.identity(7)) * 1
+    Q[0, 0] = 10
+    R = ca.DM([[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 1000, 0], [0, 0, 0, 1000]])
 
     return [Q, R]
 
@@ -51,7 +50,10 @@ def set_euler_ref(prediction_horizon, num_states):
         """
 
     ref = ca.DM.ones(prediction_horizon * num_states, 1)
+    constant_ref = ca.DM([0, 0, 0, 0, 0, 0, 0])
 
+    for state in range(num_states):
+        ref[state::num_states] = ref[state::num_states] * constant_ref[state]
     return ref
 
 
@@ -66,27 +68,37 @@ def make_euler_model(simulation_type, pred_horizon, disturb_magnitude):
     weight matrices.
     """
 
-    Ap = ca.DM([[1, 0, 0, 0, 0, 0, 0],
-                [0, -0.3429575580, 1.280457558, 0, 0, 0, 0],
-                [0, 1.342957558, -1.623415116, 1.280457558, 0, 0, 0],
-                [0, 0, 1.342957558, -1.623415116, 1.280457558, 0, 0],
-                [0, 0, 0, 1.342957558, -1.623415116, 1.280457558, 0],
-                [0, 0, 0, 0, 1.342957558, -10.58661802, 10.24366046],
-                [0, 0, 0, 0, 0, 10.30616046, -9.24366046]])
+    Ap = ca.DM([[1., 0., 0., 0., 0., 0., 0.], [0., 0.23477, 0.64023, 0., 0., 0., 0.],
+                [0., 0.76523, -0.40546, 0.64023, 0., 0., 0.], [0., 0., 0.76523, -0.40546, 0.64023, 0., 0.],
+                [0., 0., 0., 0.76523, -0.40546, 0.64023, 0.], [0., 0., 0., 0., 0.76523, -1.5761, 1.8109],
+                [0., 0., 0., 0., 0., 1.9359, -0.8109]])
 
-    Bp = ca.DM([[-2 / 5, 0, -2 / 5, 0], [3 / 2, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0],
-                [0, -12 / 5, 0, -12 / 5]])
+    Bp = ca.DM([[-2 / 5, 0, -2 / 5, 0],
+                [3 / 2, 0, 0, 0],
+                [0, 0, 0, 0],
+                [0, 0, 0, 0],
+                [0, 0, 0, 0],
+                [0, 0, 0, 0],
+                [0, -3 / 10, 0, -3 / 10]])
+
     Bp_d = ca.DM([2 / 5, 0, 0, 0, 0, 0, 0])
 
-    operating_point = ca.DM([0, -2.535915115, 0, 0, 0, -20.48732092, 23.02323604])
+    operating_point = ca.DM([0., -1.2305, 0., 0., 0., -3.6216, 4.8521])
+    # Un-constraint
+    lower_bounds_input = None
+    lower_bounds_slew_rate = None
+    lower_bounds_states = None
+    upper_bounds_input = None
+    upper_bounds_slew_rate = None
+    upper_bounds_states = None
 
-    # constraints
-    lower_bounds_input = [-ca.inf, -ca.inf, -ca.inf, -ca.inf]
-    lower_bounds_slew_rate = [-ca.inf, -ca.inf, -ca.inf, -ca.inf]
-    lower_bounds_states = [-ca.inf, -ca.inf, -ca.inf, -ca.inf, -ca.inf, -ca.inf, -ca.inf]
-    upper_bounds_input = [ca.inf, ca.inf, ca.inf, ca.inf]
-    upper_bounds_slew_rate = [ca.inf, ca.inf, ca.inf, ca.inf]
-    upper_bounds_states = [ca.inf, ca.inf, ca.inf, ca.inf, ca.inf, ca.inf, ca.inf]
+    # Actual constraints
+    lower_bounds_input = ca.DM([0, 0, 0, 0])
+    # lower_bounds_slew_rate = ca.DM([-ca.inf, -ca.inf, -ca.inf, -ca.inf])
+    lower_bounds_states = ca.DM([0, 0, 0, 0, 0, 0, 0])
+    # upper_bounds_input = ca.DM([1 / 60, 1 / 60, ca.inf, ca.inf])
+    upper_bounds_slew_rate = ca.DM([ca.inf, 1/10, ca.inf, ca.inf])
+    # upper_bounds_states = ca.DM([3, 1, 1, 1, 1, 1, 2])
 
     # size1 and size2 represent the num of rows and columns in the Casadi lib, respectively
     num_states = Ap.size1()
@@ -149,6 +161,12 @@ def make_euler_mpc_model(state_space_model, prediction_horizon, control_horizon)
                             initial_control_signal=state_space_model["u0"],
                             ref=ref,
                             input_matrix_d=state_space_model["b_disturbance"],
+                            lower_bounds_input=state_space_model["lower_bounds_input"],
+                            lower_bounds_slew_rate=state_space_model["lower_bounds_slew_rate"],
+                            lower_bounds_states=state_space_model["lower_bounds_states"],
+                            upper_bounds_input=state_space_model["upper_bounds_input"],
+                            upper_bounds_slew_rate=state_space_model["upper_bounds_slew_rate"],
+                            upper_bounds_states=state_space_model["upper_bounds_states"]
                             )
 
     state_space_model["mpc_model"] = mpc_model
@@ -158,7 +176,6 @@ def make_euler_mpc_model(state_space_model, prediction_horizon, control_horizon)
 
 def run_euler_model_simulation(time_step, complete_model, prediction_horizon, sim, pump_ids, tank_ids, junction_ids,
                                network_df):
-
     pump1 = Links(sim)[pump_ids[0]]
     pump2 = Links(sim)[pump_ids[1]]
     tank1 = Nodes(sim)[tank_ids[0]]
@@ -198,17 +215,17 @@ def run_euler_model_simulation(time_step, complete_model, prediction_horizon, si
     # start the simulation with the pumps closed
     # https://pyswmm.readthedocs.io/en/stable/reference/nodes.html
     # use these functions to set how much the pump is open for
-    pump1.target_setting = int(0)
-    pump2.target_setting = int(0)
+    pump1.target_setting = PumpSetting.CLOSED.value
+    pump2.target_setting = PumpSetting.CLOSED.value
 
     # x initial conditions
-    states = [tank1.depth,
-              junction_n1.depth,
-              junction_n2.depth,
-              junction_n3.depth,
-              junction_n4.depth,
-              junction_n5.depth,
-              tank2.depth
+    states = [tank1.initial_depth,
+              junction_n1.initial_depth,
+              junction_n2.initial_depth,
+              junction_n3.initial_depth,
+              junction_n4.initial_depth,
+              junction_n5.initial_depth,
+              tank2.initial_depth
               ]
 
     # u_prev, initial control input
@@ -219,7 +236,7 @@ def run_euler_model_simulation(time_step, complete_model, prediction_horizon, si
     ref = set_euler_ref(prediction_horizon, complete_model["num_states"])
 
     # This disturbance is delta_disturbance between consecutive ones
-    disturbance = []
+    disturbance = ca.DM.zeros(prediction_horizon, 1)
 
     # To make the simulation precise,
     # make sure that the flow metrics are in Cubic Meters per Second [CMS]
@@ -233,7 +250,7 @@ def run_euler_model_simulation(time_step, complete_model, prediction_horizon, si
             print('R')
 
         mpc_model.plot_progress(options={'drawU': 'U'})
-        mpc_model.step(states, control_input)
+        mpc_model.step(states, control_input, prev_disturbance=ca.DM([1]))
 
         # TODO: don't forget to add operating point
         control_input = control_input + mpc_model.get_next_control_input_change()
@@ -256,6 +273,6 @@ def run_euler_model_simulation(time_step, complete_model, prediction_horizon, si
                   junction_n4.depth,
                   junction_n5.depth,
                   tank2.depth
-                  ] - operating_point
+                  ]
 
     return network_df
