@@ -1,7 +1,7 @@
 import casadi as ca
 
 
-def gen_mpc_solver(A, B, Hu, Hp, Q, R, B_d=None):
+def gen_mpc_solver(A, B, Hu, Hp, Q, R, B_d=None, S=None):
     '''
     Consult at p55 in Jan M. book for better understanding as well as casadi documentation
         :param A:(mxm) Model dynamics matrix of type casadi.DM
@@ -15,6 +15,9 @@ def gen_mpc_solver(A, B, Hu, Hp, Q, R, B_d=None):
 
     if B_d is None:
         B_d = B
+    if S is None:
+        S = ca.DM.zeros(R.size1(), R.size2())
+        S = R
 
     # Useful dimensions
     number_of_states = A.size1()
@@ -67,8 +70,9 @@ def gen_mpc_solver(A, B, Hu, Hp, Q, R, B_d=None):
     # Cost function:
     # Cost = (Z - T)' * Q * (Z - T) + dU' * R * dU
     error = predicted_states - ref  # e = (Z - T)
-    quadratic_cost = error.T @ Q @ error\
-                     + du.T @ R @ du
+    quadratic_cost = error.T @ Q @ error \
+                     + du.T @ R @ du \
+                     + U.T @ S @ U
 
     # Setup Solver
     # set print level: search for 'printLevel' in link
@@ -156,6 +160,7 @@ def gen_theta(upsilon, B, Hu):
 
     return Theta
 
+
 def gen_predicted_states(psi, x0, upsilon, u_prev, theta, du, upsilon_d=None, ud_prev=None, theta_d=None, dud=None):
     """
     Consult at p55 in Jan M. book for better understanding
@@ -214,4 +219,3 @@ def gen_solver_input(x0, u_prev, ref, ud_prev, disturbance):
                                  ca.vertcat(ca.vec(ref),
                                             ca.vertcat(ca.vec(ud_prev),
                                                        ca.vec(disturbance)))))
-

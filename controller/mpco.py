@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 class MpcObj:
 
     def __init__(self, dynamics_matrix, input_matrix, control_horizon, prediction_horizon, state_cost,
-                 input_change_cost,
+                 input_change_cost, input_cost=None,
                  ref=None, initial_control_signal=None, input_matrix_d=None,
                  lower_bounds_states=None, upper_bounds_states=None,
                  lower_bounds_slew_rate=None, upper_bounds_slew_rate=None,  # TODO slew
@@ -45,38 +45,61 @@ class MpcObj:
         else:
             self.input_matrix_d = input_matrix_d
 
+        if input_cost is None:
+            self.input_cost = input_change_cost
+        else:
+            self.input_cost = input_cost
+
         # State bounds
         if lower_bounds_states is None:
             self.lower_bounds_states = ca.DM.zeros(self.states * self.prediction_horizon, 1) - ca.inf
         else:
-            self.lower_bounds_states = lower_bounds_states
+            if lower_bounds_states.size1() == self.states:
+                self.set_static_lower_bounds_states(lower_bounds_states)
+            else:
+                self.lower_bounds_states = lower_bounds_states
 
         if upper_bounds_states is None:
             self.upper_bounds_states = ca.DM.zeros(self.states * self.prediction_horizon, 1) + ca.inf
         else:
-            self.upper_bounds_states = upper_bounds_states
+            if upper_bounds_states.size1() == self.states:
+                self.set_static_upper_bounds_states(upper_bounds_states)
+            else:
+                self.upper_bounds_states = upper_bounds_states
 
-            # Slew rate bounds
+        # Slew rate bounds
         if lower_bounds_slew_rate is None:
             self.lower_bounds_slew_rate = ca.DM.zeros(self.inputs * self.control_horizon, 1) - ca.inf
         else:
-            self.lower_bounds_slew_rate = lower_bounds_slew_rate
+            if lower_bounds_slew_rate.size1() == self.inputs:
+                self.set_static_lower_bounds_slew_rate(lower_bounds_slew_rate)
+            else:
+                self.lower_bounds_slew_rate = lower_bounds_slew_rate
 
         if upper_bounds_slew_rate is None:
             self.upper_bounds_slew_rate = ca.DM.zeros(self.inputs * self.control_horizon, 1) + ca.inf
         else:
-            self.upper_bounds_slew_rate = upper_bounds_slew_rate
+            if upper_bounds_slew_rate.size1() == self.inputs:
+                self.set_static_upper_bounds_slew_rate(upper_bounds_slew_rate)
+            else:
+                self.upper_bounds_slew_rate = upper_bounds_slew_rate
 
             # Input bounds
         if lower_bounds_input is None:
             self.lower_bounds_input = ca.DM.zeros(self.inputs * self.control_horizon, 1) - ca.inf
         else:
-            self.lower_bounds_input = lower_bounds_input
+            if lower_bounds_input.size1() == self.inputs:
+                self.set_static_lower_bounds_input(lower_bounds_input)
+            else:
+                self.lower_bounds_input = lower_bounds_input
 
         if upper_bounds_input is None:
             self.upper_bounds_input = ca.DM.zeros(self.inputs * self.control_horizon, 1) + ca.inf
         else:
-            self.upper_bounds_input = upper_bounds_input
+            if upper_bounds_input.size1() == self.inputs:
+                self.set_static_upper_bounds_input(upper_bounds_input)
+            else:
+                self.upper_bounds_input = upper_bounds_input
 
         if ref is None:
             self.ref = ref = ca.DM.zeros(self.prediction_horizon * self.states, 1)
@@ -94,7 +117,8 @@ class MpcObj:
         self.state_cost = state_cost
         self.state_cost_block_matrix = mpc.blockdiag(state_cost, prediction_horizon)
         self.input_change_cost = input_change_cost
-        self.input_change_cost_block_matrix = mpc.blockdiag(input_change_cost, control_horizon)
+        self.input_change_cost_block_matrix = mpc.blockdiag(self.input_change_cost, control_horizon)
+        self.input_cost_block_matrix = mpc.blockdiag(self.input_cost, control_horizon)
         self.psi = mpc.gen_psi(dynamics_matrix, prediction_horizon)
         self.upsilon = mpc.gen_upsilon(dynamics_matrix, input_matrix, prediction_horizon)
         self.theta = mpc.gen_theta(self.upsilon, input_matrix, control_horizon)
@@ -197,6 +221,30 @@ class MpcObj:
 
     def get_du(self):
         return self.dU
+
+    def set_static_lower_bounds_states(self, bounds):
+        self.lower_bounds_states = ca.repmat(ca.vec(bounds), self.prediction_horizon, 1)
+        return self.lower_bounds_states
+
+    def set_static_upper_bounds_states(self, bounds):
+        self.upper_bounds_states = ca.repmat(ca.vec(bounds), self.prediction_horizon, 1)
+        return self.upper_bounds_states
+
+    def set_static_lower_bounds_slew_rate(self, bounds):
+        self.lower_bounds_slew_rate = ca.repmat(ca.vec(bounds), self.control_horizon, 1)
+        return self.lower_bounds_slew_rate
+
+    def set_static_upper_bounds_slew_rate(self, bounds):
+        self.upper_bounds_slew_rate = ca.repmat(ca.vec(bounds), self.control_horizon, 1)
+        return self.upper_bounds_slew_rate
+
+    def set_static_lower_bounds_input(self, bounds):
+        self.lower_bounds_input = ca.repmat(ca.vec(bounds), self.control_horizon, 1)
+        return self.lower_bounds_input
+
+    def set_static_upper_bounds_input(self, bounds):
+        self.upper_bounds_input = ca.repmat(ca.vec(bounds), self.control_horizon, 1)
+        return self.upper_bounds_input
 
     def log(self, initial_state, expected_x, dU, ref, disturbance):
         self.log_initial_state = ca.horzcat(self.log_initial_state, ca.vec(initial_state))

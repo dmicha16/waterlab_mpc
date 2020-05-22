@@ -24,7 +24,7 @@ from controller import mpc, mpco
 # import plotter as plotter
 from enum import Enum
 
-from state_space_models import euler_model,\
+from state_space_models import euler_model, \
     custom_model, preismann_model
 
 
@@ -101,6 +101,7 @@ def make_mpc_model(ss_model, pred_horizon, ctrl_horizon):
                                                                          ctrl_horizon)
 
     return aug_state_space_model
+
 
 # Functionality moved to different files
 # def set_reference(pred_horizon, states):
@@ -204,8 +205,8 @@ if __name__ == "__main__":
     junctions = ["N1", "N1", "N2", "N3", "N4", "N5"]
 
     # TODO: make this into a dictionary
-    prediction_horizon = 4
-    control_horizon = 4
+    prediction_horizon = 10
+    control_horizon = 10
     disturbance_magnitude = 5
     steps_between_plots = 3
     plot_mpc_steps = True
