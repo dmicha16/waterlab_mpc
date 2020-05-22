@@ -103,7 +103,7 @@ def make_mpc_model(ss_model, pred_horizon, ctrl_horizon):
 def run_simulation(simul_config, data_df, complete_sys_model):
 
     if simul_config["sim_type"] == SimType.CUSTOM_MODEL:
-        custom_model.run_custom_model_simulation(complete_model, simul_config["prediction_horizon"])
+        custom_model.run_custom_model_simulation(complete_sys_model, simul_config["prediction_horizon"])
 
     with Simulation(simul_config["network_name"]) as sim:
 
@@ -159,6 +159,7 @@ def save_data(sim_df, simulation_config, disturbance_config):
     file_name = f"{path}/mpc_simulation_df_{timestamp_hour}_{simulation_type}.pkl"
     json_file_name = file_name = f"{path}/mpc_simulation_df_{timestamp_hour}_{simulation_type}.json"
 
+    # It is possible to just simply add more info the json with this one dictionary below, by updating the entries
     combined_dict = {
         "date": timestamp_day,
         "hour": timestamp_hour
@@ -176,13 +177,29 @@ if __name__ == "__main__":
     print_welcome_msg()
 
     # create columns and pandas DataFrame to store data
-    columns = ['timestamp',
-               'time_step',
-               'tank_volume',
-               'tank_depth',
-               'tank_overflow',
-               'tank_inflow',
-               'pump_flow']
+    columns = [
+        'timestamp',
+        'time_step',
+        'tank1_depth',
+        'tank1_volume',
+        'tank1_flooding',
+        'tank1_inflow',
+        'tank2_depth',
+        'tank2_volume',
+        'tank2_flooding',
+        'tank2_inflow',
+        'junction_n1_depth',
+        'junction_n2_depth',
+        'junction_n3_depth',
+        'junction_n4_depth',
+        'junction_n5_depth',
+        'pump1_flow',
+        'pump1_current_setting',
+        'pump1_target_setting',
+        'pump2_flow'
+        'pump2_current_setting'
+        'pump2_target_setting'
+    ]
     network_df = pd.DataFrame(columns=columns)
 
     sim_config = {

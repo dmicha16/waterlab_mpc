@@ -4,6 +4,9 @@ import numpy as np
 from controller import mpco
 from pyswmm import Simulation, Nodes, Links
 from enum import Enum
+
+from proposal_network import tank1
+from util_scripts import network_logger
 import pandas as pd
 
 
@@ -152,6 +155,28 @@ def run_euler_model_simulation(time_step, complete_model, prediction_horizon, si
     junction_n4 = Nodes(sim)[junction_ids[3]]
     junction_n5 = Nodes(sim)[junction_ids[4]]
 
+    network_elements = {
+        "tank1_depth": tank1.depth,
+        "tank1_volume": tank1.volume,
+        "tank1_flooding": tank1.flooding,
+        "tank1_inflow": tank1.total_inflow,
+        "tank2_depth": tank2.depth,
+        "tank2_volume": tank2.volume,
+        "tank2_flooding": tank2.flooding,
+        "tank2_inflow": tank2.total_inflow,
+        "junction_n1_depth": junction_n1.depth,
+        "junction_n2_depth": junction_n2.depth,
+        "junction_n3_depth": junction_n3.depth,
+        "junction_n4_depth": junction_n4.depth,
+        "junction_n5_depth": junction_n5.depth,
+        "pump1_flow": pump1.flow,
+        "pump1_current_setting": pump1.current_setting,
+        "pump1_target_setting": pump1.target_setting,
+        "pump2_flow": pump2.flow,
+        "pump2_current_setting": pump2.current_setting,
+        "pump2_target_setting": pump2.target_setting
+    }
+
     mpc_model = complete_model["mpc_model"]
     operating_point = complete_model["operating_point"]
 
@@ -185,9 +210,7 @@ def run_euler_model_simulation(time_step, complete_model, prediction_horizon, si
     # make sure that the flow metrics are in Cubic Meters per Second [CMS]
     for idx, step in enumerate(sim):
 
-        # TODO: finish filling of dataframe
-        network_df = network_df.append(pd.Series([tank1.volume, tank1.depth, tank1.flooding, tank1.total_inflow,
-                                                  pump1.flow], index=network_df.columns), ignore_index=True)
+        network_df = network_df.append(network_elements, ignore_index=True)
 
         user_key_input = input("press s key to step, or \'r\' to run all steps, or q to quit")
 
@@ -205,7 +228,12 @@ def run_euler_model_simulation(time_step, complete_model, prediction_horizon, si
         sim.step_advance(time_step)
 
         # tank1.depth, hp1.depth, hp2.depth ... hp5.depth, tank2.depth
-        # this here is a python stl list, you cannot substruct like this safely
+        # this here is a python stl list, you cannot subtract like this safely
+
+        # TODO: make sure to fix the operating point error here
+        # TODO: also make sure to have some form of controller termination of the simulation i.e. NOT ctrl-c,
+        #  so the logging can exit and return the filled dataframe below
+
         states = [tank1.depth,
                   junction_n1.depth,
                   junction_n2.depth,
@@ -214,6 +242,5 @@ def run_euler_model_simulation(time_step, complete_model, prediction_horizon, si
                   junction_n5.depth,
                   tank2.depth
                   ] - operating_point
-
 
     return network_df
