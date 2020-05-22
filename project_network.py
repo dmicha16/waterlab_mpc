@@ -221,35 +221,15 @@ if __name__ == "__main__":
         # "use_random": False
     }
 
-    disturb_manager = disturbance_reader.Disturbance(config)
-
-    rows = disturb_manager.get_k_delta_disturbance(1, 10)
-
-    # EPA SWMM engine step size [seconds]
-    sim_step_size = 60
-
-    # These have to be the names of the pumps and tanks from EPA SWMM
-    pumps = ["FP1", "FP2"]
-    tanks = ["T1", "T2"]
-    junctions = ["N1", "N1", "N2", "N3", "N4", "N5"]
-
-    # TODO: make this into a dictionary
-    prediction_horizon = 4
-    control_horizon = 4
-    disturbance_magnitude = 5
-    steps_between_plots = 3
-    plot_mpc_steps = True
-
     # Make sure to select the right type of model you want to run the MPC on
-    state_space_model = define_state_space_model(SimType.EULER, prediction_horizon,
-                                                 disturbance_magnitude)
+    # state_space_model = define_state_space_model(sim_config["sim_type"], sim_config["prediction_horizon"],
+    #                                         sim_config["disturbance_magnitude"])
+    #
+    # complete_model = make_mpc_model(state_space_model, sim_config["prediction_horizon"], sim_config["control_horizon"])
+    #
+    # simulation_df = run_simulation(sim_config, network_df, complete_model)
+    simulation_df = network_df
 
-    complete_model = make_mpc_model(state_space_model, prediction_horizon, control_horizon)
-
-    simulation_df = run_simulation(sim_step_size, pumps, tanks, junctions, network_df, network_name, complete_model,
-                                   steps_between_plots, plot_mpc_steps)
-    # simulation_df = network_df
-
-    # save_data(simulation_df, prediction_model["sim_type"])
+    save_data(simulation_df, sim_config, disturb_config)
 
     print("Simulation is finished.")

@@ -4,6 +4,7 @@ import numpy as np
 from controller import mpco
 from pyswmm import Simulation, Nodes, Links
 from enum import Enum
+import pandas as pd
 
 
 class PumpSetting(Enum):
@@ -11,14 +12,13 @@ class PumpSetting(Enum):
     OPEN = 1
 
 
-# DEPRECATED
 def set_euler_initial_conditions():
     """
-    Set initial conditions for the Euler model
+    Set initial conditions for the Euler model. In this case it is only to
+    determine the correct dimensions for the MPC
     :return: x0 and u0
     """
 
-    # TODO: figure out how to get the initial conditions from pyswmm here
     x0 = ca.DM.zeros(7, 1)
     u0 = ca.DM.zeros(4, 1)
 
@@ -138,7 +138,9 @@ def make_euler_mpc_model(state_space_model, prediction_horizon, control_horizon)
     return state_space_model
 
 
-def run_euler_model_simulation(time_step, complete_model, prediction_horizon, sim, pump_ids, tank_ids, junction_ids):
+def run_euler_model_simulation(time_step, complete_model, prediction_horizon, sim, pump_ids, tank_ids, junction_ids,
+                               network_df):
+
     pump1 = Links(sim)[pump_ids[0]]
     pump2 = Links(sim)[pump_ids[1]]
     tank1 = Nodes(sim)[tank_ids[0]]
@@ -184,12 +186,14 @@ def run_euler_model_simulation(time_step, complete_model, prediction_horizon, si
     for idx, step in enumerate(sim):
 
         # TODO: finish filling of dataframe
-        # network_df = network_df.append(pd.Series([tank1.volume, tank1.depth, tank1.flooding, tank1.total_inflow,
-        #                                           pump1.flow], index=network_df.columns), ignore_index=True)
+        network_df = network_df.append(pd.Series([tank1.volume, tank1.depth, tank1.flooding, tank1.total_inflow,
+                                                  pump1.flow], index=network_df.columns), ignore_index=True)
+
         user_key_input = input("press s key to step, or \'r\' to run all steps, or q to quit")
-        # TODO: try non-blocking user input to fix printing like this
+
         if user_key_input == "r":
             print('R')
+
         mpc_model.plot_progress(options={'drawU': 'U'})
         mpc_model.step(states, control_input)
 
@@ -198,10 +202,10 @@ def run_euler_model_simulation(time_step, complete_model, prediction_horizon, si
         pump1.target_setting = control_input[0]
         pump2.target_setting = control_input[1]
 
-        # tank1.depth, hp1.depth, hp2.depth ... hp5.depth, tank2.depth
-
         sim.step_advance(time_step)
 
+        # tank1.depth, hp1.depth, hp2.depth ... hp5.depth, tank2.depth
+        # this here is a python stl list, you cannot substruct like this safely
         states = [tank1.depth,
                   junction_n1.depth,
                   junction_n2.depth,
@@ -210,3 +214,6 @@ def run_euler_model_simulation(time_step, complete_model, prediction_horizon, si
                   junction_n5.depth,
                   tank2.depth
                   ] - operating_point
+
+
+    return network_df
