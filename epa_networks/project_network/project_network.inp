@@ -62,8 +62,8 @@ out              0          FREE                        NO
 [STORAGE]
 ;;Name           Elev.    MaxDepth   InitDepth  Shape      Curve Name/Params            N/A      Fevap    Psi      Ksat     IMD     
 ;;-------------- -------- ---------- ----------- ---------- ---------------------------- -------- --------          -------- --------
-T1               0        3          0          FUNCTIONAL 50        0         0        0        0       
-T2               9        2          0          FUNCTIONAL 25        0         0        0        0       
+T1               0        3          0          FUNCTIONAL 150       0         0        0        0       
+T2               9        2          0          FUNCTIONAL 200       0         0        0        0       
 
 [CONDUITS]
 ;;Name           From Node        To Node          Length     Roughness  InOffset   OutOffset  InitFlow   MaxFlow   
