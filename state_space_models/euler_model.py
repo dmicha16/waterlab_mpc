@@ -63,7 +63,8 @@ def make_euler_model(simulation_type, pred_horizon, disturb_magnitude):
     weight matrices.
     """
 
-    Ap = ca.DM([[1, 0, 0, 0, 0, 0, 0], [0, -0.3429575580, 1.280457558, 0, 0, 0, 0],
+    Ap = ca.DM([[1, 0, 0, 0, 0, 0, 0],
+                [0, -0.3429575580, 1.280457558, 0, 0, 0, 0],
                 [0, 1.342957558, -1.623415116, 1.280457558, 0, 0, 0],
                 [0, 0, 1.342957558, -1.623415116, 1.280457558, 0, 0],
                 [0, 0, 0, 1.342957558, -1.623415116, 1.280457558, 0],
@@ -74,7 +75,15 @@ def make_euler_model(simulation_type, pred_horizon, disturb_magnitude):
                 [0, -12 / 5, 0, -12 / 5]])
     Bp_d = ca.DM([2 / 5, 0, 0, 0, 0, 0, 0])
 
-    operating_point = ca.DM( [0, -2.535915115, 0, 0, 0, -20.48732092, 23.02323604])
+    operating_point = ca.DM([0, -2.535915115, 0, 0, 0, -20.48732092, 23.02323604])
+
+    # constraints
+    lower_bounds_input = [-ca.inf, -ca.inf, -ca.inf, -ca.inf]
+    lower_bounds_slew_rate = [-ca.inf, -ca.inf, -ca.inf, -ca.inf]
+    lower_bounds_states = [-ca.inf, -ca.inf, -ca.inf, -ca.inf, -ca.inf, -ca.inf, -ca.inf]
+    upper_bounds_input = [ca.inf, ca.inf, ca.inf, ca.inf]
+    upper_bounds_slew_rate = [ca.inf, ca.inf, ca.inf, ca.inf]
+    upper_bounds_states = [ca.inf, ca.inf, ca.inf, ca.inf, ca.inf, ca.inf, ca.inf]
 
     # size1 and size2 represent the num of rows and columns in the Casadi lib, respectively
     num_states = Ap.size1()
@@ -99,7 +108,13 @@ def make_euler_model(simulation_type, pred_horizon, disturb_magnitude):
                                  "num_states": num_states,
                                  "num_inputs": num_inputs,
                                  "sim_type": simulation_type,
-                                 "disturbance_array": disturbance_array
+                                 "disturbance_array": disturbance_array,
+                                 "lower_bounds_input": lower_bounds_input,
+                                 "lower_bounds_slew_rate": lower_bounds_slew_rate,
+                                 "lower_bounds_states": lower_bounds_states,
+                                 "upper_bounds_input": upper_bounds_input,
+                                 "upper_bounds_slew_rate": upper_bounds_slew_rate,
+                                 "upper_bounds_states": upper_bounds_states
                                  }
 
     print("Euler model is constructed.")
