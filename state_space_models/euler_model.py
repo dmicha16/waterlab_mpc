@@ -34,9 +34,10 @@ def set_euler_weight_matrices():
 
     # initially to ones to run the code
     # TODO: add proper Q and R matrices @Casper
-    Q = ca.DM(np.identity(7)) * 1
-    Q[0, 0] = 10
-    R = ca.DM([[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 1000, 0], [0, 0, 0, 1000]])
+    Q = ca.DM(np.identity(7)) * 0
+    Q[0, 0] = 1
+    Q[6, 6] = 1
+    R = ca.DM([[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 10000, 0], [0, 0, 0, 10000]])
 
     return [Q, R]
 
@@ -68,22 +69,14 @@ def make_euler_model(simulation_type, pred_horizon, disturb_magnitude):
     weight matrices.
     """
 
-    Ap = ca.DM([[1., 0., 0., 0., 0., 0., 0.], [0., 0.23477, 0.64023, 0., 0., 0., 0.],
-                [0., 0.76523, -0.40546, 0.64023, 0., 0., 0.], [0., 0., 0.76523, -0.40546, 0.64023, 0., 0.],
-                [0., 0., 0., 0.76523, -0.40546, 0.64023, 0.], [0., 0., 0., 0., 0.76523, -1.5761, 1.8109],
-                [0., 0., 0., 0., 0., 1.9359, -0.8109]])
+    Ap = ca.DM([[1., 0., 0., 0., 0., 0., 0.], [0., 0.93774, 0.018944, 0., 0., 0., 0.], [0., 0.062261, 0.91880, 0.018944, 0., 0., 0.], [0., 0., 0.062261, 0.91880, 0.018944, 0., 0.], [0., 0., 0., 0.062261, 0.91880, 0.018944, 0.], [0., 0., 0., 0., 0.062261, 0.88416, 0.053581], [0., 0., 0., 0., 0., 0.096898, 0.94642]])
 
-    Bp = ca.DM([[-2 / 5, 0, -2 / 5, 0],
-                [3 / 2, 0, 0, 0],
-                [0, 0, 0, 0],
-                [0, 0, 0, 0],
-                [0, 0, 0, 0],
-                [0, 0, 0, 0],
-                [0, -3 / 10, 0, -3 / 10]])
+    Bp = ca.DM([[-1 / 15, 0, -1 / 15, 0], [1 / 4, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0],
+                [0, -1 / 20, 0, -1 / 20]])
 
-    Bp_d = ca.DM([2 / 5, 0, 0, 0, 0, 0, 0])
+    Bp_d = ca.DM([[1/15],[0],[0],[0],[0],[0],[0]])
 
-    operating_point = ca.DM([0., -1.2305, 0., 0., 0., -3.6216, 4.8521])
+    operating_point = ca.DM([0., -0.028882, 0., 0., 0., -0.10716, 0.13604]) * 1
     # Un-constraint
     lower_bounds_input = None
     lower_bounds_slew_rate = None
@@ -95,9 +88,9 @@ def make_euler_model(simulation_type, pred_horizon, disturb_magnitude):
     # Actual constraints
     lower_bounds_input = ca.DM([0, 0, 0, 0])
     # lower_bounds_slew_rate = ca.DM([-ca.inf, -ca.inf, -ca.inf, -ca.inf])
-    lower_bounds_states = ca.DM([0, 0, 0, 0, 0, 0, 0])
-    # upper_bounds_input = ca.DM([1 / 60, 1 / 60, ca.inf, ca.inf])
-    upper_bounds_slew_rate = ca.DM([ca.inf, 1/10, ca.inf, ca.inf])
+    # lower_bounds_states = ca.DM([-1, -1, -1, -1, -1, -1, -1])
+    upper_bounds_input = ca.DM([2, 2, ca.inf, ca.inf])
+    # upper_bounds_slew_rate = ca.DM([ca.inf, ca.inf, ca.inf, ca.inf])
     # upper_bounds_states = ca.DM([3, 1, 1, 1, 1, 1, 2])
 
     # size1 and size2 represent the num of rows and columns in the Casadi lib, respectively
@@ -160,6 +153,7 @@ def make_euler_mpc_model(state_space_model, prediction_horizon, control_horizon)
                             state_space_model["R"],
                             initial_control_signal=state_space_model["u0"],
                             ref=ref,
+                            operating_point=state_space_model["operating_point"],
                             input_matrix_d=state_space_model["b_disturbance"],
                             lower_bounds_input=state_space_model["lower_bounds_input"],
                             lower_bounds_slew_rate=state_space_model["lower_bounds_slew_rate"],

@@ -131,7 +131,7 @@ class MpcObj:
         self.upsilon_d = mpc.gen_upsilon(dynamics_matrix, input_matrix_d, prediction_horizon)
         self.theta_d = mpc.gen_theta(self.upsilon_d, self.input_matrix_d, prediction_horizon)
         self.solver = self.lift(dynamics_matrix, input_matrix, control_horizon, prediction_horizon, state_cost,
-                                input_change_cost, input_matrix_d)
+                                input_change_cost, input_matrix_d, operating_point=operating_point)
 
         self.result = None
         # Setup step variables
@@ -342,7 +342,7 @@ class MpcObj:
         self.predicted_states = mpc.gen_predicted_states(self.psi, self.initial_state, self.upsilon, self.u_prev,
                                                          self.theta,
                                                          self.dU, self.upsilon_d, self.prev_disturbance, self.theta_d,
-                                                         self.disturbance)
+                                                         self.disturbance, op=self.operating_point)
         self.log(initial_state, self.get_next_expected_state(), self.get_next_control_input_change(),
                  self.get_next_ref(),
                  self.get_next_disturbance_change(), )

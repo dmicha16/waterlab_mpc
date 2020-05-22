@@ -209,6 +209,8 @@ def gen_predicted_states(psi, x0, upsilon, u_prev, theta, du, upsilon_d=None, ud
         upsilon_d @ ud_prev + \
         theta_d @ dud + \
         upsilon_op @ op
+    test = upsilon_op @ op
+    print(test)
     return x
 
 

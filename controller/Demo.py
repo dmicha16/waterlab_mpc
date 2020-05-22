@@ -66,7 +66,7 @@ R = ca.DM([[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 1000, 0], [0, 0, 0, 1000]])
 x0 = ca.DM([[2], [0], [0], [0], [0], [0], [0]])
 u0 = ca.DM([0, 0, 0, 0])
 
-operating_point = ca.DM([0., -1.2305, 0., 0., 0., -3.6216, 4.8521])
+operating_point = ca.DM([0., -1.2305, 0., 0., 0., -3.6216, 4.8521])*1
 
 ref = ca.DM.ones(Hp * states, 1)
 for state in range(states):
