@@ -209,7 +209,7 @@ if __name__ == "__main__":
         
         # EPA SWMM engine step size [seconds]
         "sim_type": SimType.EULER,
-        "sim_step_size": 60,
+        "sim_step_size": 10,
 
         # These have to be the names of the pumps and tanks from EPA SWMM
         "pumps": ["FP1", "FP2"],
@@ -218,13 +218,13 @@ if __name__ == "__main__":
 
         # MPC related configuration
         "prediction_horizon": 10,
-        "control_horizon": 6,
+        "control_horizon": 10,
         "disturbance_magnitude": 5,
         "steps_between_plots": 3,
         "plot_mpc_steps": True
     }
 
-    # Configure the disturbance
+    # Configure the disturbance1
     # If you do not wish to use any gains on the data,
     # set either rain_gain or poop_gain to 1
     # It also possible to select which disturbance you want to use
