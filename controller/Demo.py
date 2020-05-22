@@ -23,16 +23,13 @@ Ap = ca.DM([[1, 0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 1.342957558, -1.623415116, 1.2],
             [0, 0, 0, 0, 0, 1.3, -1.623415116]])
 
-Ap = ca.DM([[1, 0, 0, 0, 0, 0, 0],
-                [0, -0.3429575580, 1.280457558, 0, 0, 0, 0],
-                [0, 1.342957558, -1.623415116, 1.280457558, 0, 0, 0],
-                [0, 0, 1.342957558, -1.623415116, 1.280457558, 0, 0],
-                [0, 0, 0, 1.342957558, -1.623415116, 1.280457558, 0],
-                [0, 0, 0, 0, 1.342957558, -10.58661802, 10.24366046],
-                [0, 0, 0, 0, 0, 10.30616046, -9.24366046]])
+Ap = ca.DM([[1., 0., 0., 0., 0., 0., 0.], [0., 0.23477, 0.64023, 0., 0., 0., 0.],
+            [0., 0.76523, -0.40546, 0.64023, 0., 0., 0.], [0., 0., 0.76523, -0.40546, 0.64023, 0., 0.],
+            [0., 0., 0., 0.76523, -0.40546, 0.64023, 0.], [0., 0., 0., 0., 0.76523, -1.5761, 1.8109],
+            [0., 0., 0., 0., 0., 1.9359, -0.8109]])
 
 Bp = ca.DM([[-2 / 5, 0, -2 / 5, 0], [3 / 2, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0],
-            [0, -12 / 5, 0, -12 / 5]])
+            [0, -3 / 10, 0, -3 / 10]])
 Bp_d = ca.DM([2 / 5, 0, 0, 0, 0, 0, 0])
 
 states = Ap.size1()
@@ -47,20 +44,20 @@ rand_A = np.random.rand(Ap.size1(), Ap.size2())
 A = Ap * const_var + (np.random.rand(Ap.size1(), Ap.size2()) - 0.5) * rand_var
 B = Bp * const_var + (np.random.rand(Bp.size1(), Bp.size2()) - 0.5) * rand_var
 B_d = Bp_d * const_var + (np.random.rand(Bp_d.size1(), Bp_d.size2()) - 0.5) * rand_var
-Hp = 8
-Hu = Hp
+Hp = 20
+Hu = 10
 
-dist_magnitude = 0.001
-dist = ca.DM((np.random.rand(Hp * disturbances) +0) * dist_magnitude)
-dist = ca.DM.ones(Hp * disturbances)*dist_magnitude
-initial_disturbance = ca.DM.zeros(disturbances)
+dist_magnitude = 0.1
+dist = ca.DM((np.random.rand(Hp * disturbances) + 0) * dist_magnitude)
+dist = ca.DM.zeros(Hp * disturbances) * dist_magnitude
+initial_disturbance = ca.DM.ones(disturbances) * dist_magnitude
 
 Q = ca.DM([[1, 0, 0], [0, 2, 0], [0, 0, 3]])
 Qb = mpc.blockdiag(Q, Hp)
 R = ca.DM([[0.1, 0, 0], [0, 0.2, 0], [0, 0, 0.3]])
 Rb = mpc.blockdiag(R, Hu)
 Q = ca.DM(np.identity(7)) * 1
-Q[0,0] = 10
+Q[0, 0] = 10
 R = ca.DM([[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 1000, 0], [0, 0, 0, 1000]])
 
 x0 = ca.DM([[2], [0], [0], [0], [0], [0], [0]])
@@ -82,7 +79,7 @@ upper_bounds_states = ca.DM.ones(states) * 1000
 # upper_bounds_input = None
 # upper_bounds_slew_rate = None
 # upper_bounds_states = None
-#lower_bounds_states = operating_point -100
+# lower_bounds_states = operating_point -100
 
 mmpc = mpco.MpcObj(Ap, Bp, Hu, Hp, Q, R, ref=ref, initial_control_signal=u0, input_matrix_d=Bp_d,
                    lower_bounds_input=lower_bounds_input,
@@ -105,7 +102,6 @@ looper = True
 step_size = 10
 cum_dist = ca.DM(initial_disturbance)
 for j in range(1, steps):
-
     # this model is instead of the EPA swmm
     u = u + mmpc.get_next_control_input_change()
 
