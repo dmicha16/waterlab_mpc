@@ -76,7 +76,8 @@ def make_euler_model(simulation_type, pred_horizon, disturb_magnitude):
 
     Bp_d = ca.DM([[1/15],[0],[0],[0],[0],[0],[0]])
 
-    operating_point = ca.DM([0., -0.028882, 0., 0., 0., -0.10716, 0.13604]) * 1
+    # ca.DM([0., -0.028882, 0., 0., 0., -0.10716, 0.13604])
+    operating_point = ca.DM([0., -0.028882, 0., 0., 0., 0, 0.13604]) * 1
     # Un-constraint
     lower_bounds_input = None
     lower_bounds_slew_rate = None
@@ -88,10 +89,10 @@ def make_euler_model(simulation_type, pred_horizon, disturb_magnitude):
     # Actual constraints
     lower_bounds_input = ca.DM([0, 0, 0, 0])
     # lower_bounds_slew_rate = ca.DM([-ca.inf, -ca.inf, -ca.inf, -ca.inf])
-    # lower_bounds_states = ca.DM([-1, -1, -1, -1, -1, -1, -1])
+    lower_bounds_states = ca.DM([0, 0, 0, 0, 0, 0, 0])
     upper_bounds_input = ca.DM([2, 2, ca.inf, ca.inf])
-    # upper_bounds_slew_rate = ca.DM([ca.inf, ca.inf, ca.inf, ca.inf])
-    # upper_bounds_states = ca.DM([3, 1, 1, 1, 1, 1, 2])
+    upper_bounds_slew_rate = ca.DM([1, 1, ca.inf, ca.inf])
+    upper_bounds_states = ca.DM([3, 1, 1, 1, 1, 1, 2])
 
     # size1 and size2 represent the num of rows and columns in the Casadi lib, respectively
     num_states = Ap.size1()
