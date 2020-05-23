@@ -240,7 +240,7 @@ if __name__ == "__main__":
 
     #Make sure to select the right type of model you want to run the MPC on
     state_space_model = define_state_space_model(sim_config["sim_type"], sim_config["prediction_horizon"],
-                                            sim_config["disturbance_magnitude"])
+                                                 sim_config["disturbance_magnitude"])
 
     complete_model = make_mpc_model(state_space_model, sim_config["prediction_horizon"], sim_config["control_horizon"])
 

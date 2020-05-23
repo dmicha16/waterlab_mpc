@@ -35,6 +35,8 @@ def set_euler_weight_matrices():
     # initially to ones to run the code
     # TODO: add proper Q and R matrices @Casper
     Q = ca.DM(np.identity(7)) * 0
+    # TODO: take  look at the error please, you might need to use some casadi specific operations, because
+    #  now I think it's trying to default to python only syntax with Q[1,1]
     Q[0, 0] = 1
     Q[6, 6] = 1
     R = ca.DM([[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 10000, 0], [0, 0, 0, 10000]])
@@ -69,12 +71,15 @@ def make_euler_model(simulation_type, pred_horizon, disturb_magnitude):
     weight matrices.
     """
 
-    Ap = ca.DM([[1., 0., 0., 0., 0., 0., 0.], [0., 0.93774, 0.018944, 0., 0., 0., 0.], [0., 0.062261, 0.91880, 0.018944, 0., 0., 0.], [0., 0., 0.062261, 0.91880, 0.018944, 0., 0.], [0., 0., 0., 0.062261, 0.91880, 0.018944, 0.], [0., 0., 0., 0., 0.062261, 0.88416, 0.053581], [0., 0., 0., 0., 0., 0.096898, 0.94642]])
+    Ap = ca.DM([[1., 0., 0., 0., 0., 0., 0.], [0., 0.93774, 0.018944, 0., 0., 0., 0.],
+                [0., 0.062261, 0.91880, 0.018944, 0., 0., 0.], [0., 0., 0.062261, 0.91880, 0.018944, 0., 0.],
+                [0., 0., 0., 0.062261, 0.91880, 0.018944, 0.], [0., 0., 0., 0., 0.062261, 0.88416, 0.053581],
+                [0., 0., 0., 0., 0., 0.096898, 0.94642]])
 
     Bp = ca.DM([[-1 / 15, 0, -1 / 15, 0], [1 / 4, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0],
                 [0, -1 / 20, 0, -1 / 20]])
 
-    Bp_d = ca.DM([[1/15],[0],[0],[0],[0],[0],[0]])
+    Bp_d = ca.DM([[1 / 15], [0], [0], [0], [0], [0], [0]])
 
     # ca.DM([0., -0.028882, 0., 0., 0., -0.10716, 0.13604])
     operating_point = ca.DM([0., -0.028882, 0., 0., 0., 0, 0.13604]) * 1
@@ -145,7 +150,7 @@ def make_euler_mpc_model(state_space_model, prediction_horizon, control_horizon)
     num_states = state_space_model["num_states"]
 
     ref = set_euler_ref(prediction_horizon, num_states)
-    # TODO add constraints to model
+
     mpc_model = mpco.MpcObj(state_space_model["system_model"],
                             state_space_model["b_matrix"],
                             control_horizon,
@@ -171,6 +176,7 @@ def make_euler_mpc_model(state_space_model, prediction_horizon, control_horizon)
 
 def run_euler_model_simulation(time_step, complete_model, prediction_horizon, sim, pump_ids, tank_ids, junction_ids,
                                network_df):
+
     pump1 = Links(sim)[pump_ids[0]]
     pump2 = Links(sim)[pump_ids[1]]
     tank1 = Nodes(sim)[tank_ids[0]]
@@ -247,7 +253,6 @@ def run_euler_model_simulation(time_step, complete_model, prediction_horizon, si
         mpc_model.plot_progress(options={'drawU': 'U'})
         mpc_model.step(states, control_input, prev_disturbance=ca.DM([1]))
 
-        # TODO: don't forget to add operating point
         control_input = control_input + mpc_model.get_next_control_input_change()
         pump1.target_setting = control_input[0]
         pump2.target_setting = control_input[1]
@@ -257,7 +262,6 @@ def run_euler_model_simulation(time_step, complete_model, prediction_horizon, si
         # tank1.depth, hp1.depth, hp2.depth ... hp5.depth, tank2.depth
         # this here is a python stl list, you cannot subtract like this safely
 
-        # TODO: make sure to fix the operating point error here
         # TODO: also make sure to have some form of controller termination of the simulation i.e. NOT ctrl-c,
         #  so the logging can exit and return the filled dataframe below
 

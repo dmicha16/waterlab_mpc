@@ -7,7 +7,7 @@ from enum import Enum
 import pandas as pd
 
 
-def set_preismann_inital_conditions():
+def set_preismann_initial_conditions():
     """
     Set initial conditions for the Preismann model
     :return: x0 and u0
@@ -27,8 +27,12 @@ def set_preismann_weight_matrices():
     """
 
     # TODO: add proper Q and R matrices @Casper
-    Q = ca.DM(np.identity(7))
-    R = ca.DM(np.identity(4))
+    Q = ca.DM(np.identity(7)) * 0
+    # TODO: take  look at the error please, you might need to use some casadi specific operations, because
+    #  now I think it's trying to default to python only syntax with Q[1,1]
+    Q[0, 0] = 1
+    Q[6, 6] = 1
+    R = ca.DM([[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 10000, 0], [0, 0, 0, 10000]])
 
     return [Q, R]
 
@@ -42,6 +46,10 @@ def set_preismann_ref(prediction_horizon, num_states):
         """
 
     ref = ca.DM.ones(prediction_horizon * num_states, 1)
+    constant_ref = ca.DM([0, 0, 0, 0, 0, 0, 0])
+
+    for state in range(num_states):
+        ref[state::num_states] = ref[state::num_states] * constant_ref[state]
 
     return ref
 
@@ -57,31 +65,65 @@ def make_preismann_model(simulation_type, pred_horizon, disturb_magnitude):
     weight matrices.
     """
 
-    Ap = ca.DM([[1, 0, 0], [0, 0.5, 0], [0, 0, 0.7]])
-    Bp = ca.DM([[0.1, 0, 0], [0, 0.5, 0], [0, 0, 1]])
-    Bp_d = ca.DM([[0.1, 0, 0], [0, 0.5, 0], [0, 0, 1]])
+    # TODO: replace with the actualy preismann model here:
+    Ap = ca.DM([[1., 0., 0., 0., 0., 0., 0.], [0., 0.93774, 0.018944, 0., 0., 0., 0.],
+                [0., 0.062261, 0.91880, 0.018944, 0., 0., 0.], [0., 0., 0.062261, 0.91880, 0.018944, 0., 0.],
+                [0., 0., 0., 0.062261, 0.91880, 0.018944, 0.], [0., 0., 0., 0., 0.062261, 0.88416, 0.053581],
+                [0., 0., 0., 0., 0., 0.096898, 0.94642]])
+
+    Bp = ca.DM([[-1 / 15, 0, -1 / 15, 0], [1 / 4, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0],
+                [0, -1 / 20, 0, -1 / 20]])
+
+    Bp_d = ca.DM([[1 / 15], [0], [0], [0], [0], [0], [0]])
+
+    # ca.DM([0., -0.028882, 0., 0., 0., -0.10716, 0.13604])
+    operating_point = ca.DM([0., -0.028882, 0., 0., 0., 0, 0.13604]) * 1
+    # Un-constraint
+    lower_bounds_input = None
+    lower_bounds_slew_rate = None
+    lower_bounds_states = None
+    upper_bounds_input = None
+    upper_bounds_slew_rate = None
+    upper_bounds_states = None
+
+    # Actual constraints
+    lower_bounds_input = ca.DM([0, 0, 0, 0])
+    # lower_bounds_slew_rate = ca.DM([-ca.inf, -ca.inf, -ca.inf, -ca.inf])
+    lower_bounds_states = ca.DM([0, 0, 0, 0, 0, 0, 0])
+    upper_bounds_input = ca.DM([2, 2, ca.inf, ca.inf])
+    upper_bounds_slew_rate = ca.DM([1, 1, ca.inf, ca.inf])
+    upper_bounds_states = ca.DM([3, 1, 1, 1, 1, 1, 2])
 
     # size1 and size2 represent the num of rows and columns in the Casadi lib, respectively
     num_states = Ap.size1()
     num_inputs = Bp.size2()
 
     # TODO: check if this is the right thing to put here
+    # TODO: make sure when we feed the disturbance it's also lifted to Dd from D?
     disturbance_array = (np.random.rand(pred_horizon * num_inputs) - 0.5) * disturb_magnitude
 
-    [x0, u0] = set_preismann_inital_conditions()
+    # Initial conditions here are needed for the right dimensions in the MPC
+    [x0, u0] = set_preismann_initial_conditions()
     [Q, R] = set_preismann_weight_matrices()
 
     initial_state_space_model = {"system_model": Ap,
                                  "b_matrix": Bp,
                                  "b_disturbance": Bp_d,
-                                 "x0": x0,
-                                 "u0": u0,
                                  "Q": Q,
                                  "R": R,
+                                 "x0": x0,
+                                 "u0": u0,
+                                 "operating_point": operating_point,
                                  "num_states": num_states,
                                  "num_inputs": num_inputs,
                                  "sim_type": simulation_type,
-                                 "disturbance_array": disturbance_array
+                                 "disturbance_array": disturbance_array,
+                                 "lower_bounds_input": lower_bounds_input,
+                                 "lower_bounds_slew_rate": lower_bounds_slew_rate,
+                                 "lower_bounds_states": lower_bounds_states,
+                                 "upper_bounds_input": upper_bounds_input,
+                                 "upper_bounds_slew_rate": upper_bounds_slew_rate,
+                                 "upper_bounds_states": upper_bounds_states
                                  }
 
     print("Preismann model is constructed.")
@@ -104,7 +146,6 @@ def make_preismann_mpc_model(state_space_model, prediction_horizon, control_hori
 
     ref = set_preismann_ref(prediction_horizon, num_states)
 
-    # TODO add constraints to model
     mpc_model = mpco.MpcObj(state_space_model["system_model"],
                             state_space_model["b_matrix"],
                             control_horizon,
@@ -113,7 +154,14 @@ def make_preismann_mpc_model(state_space_model, prediction_horizon, control_hori
                             state_space_model["R"],
                             initial_control_signal=state_space_model["u0"],
                             ref=ref,
+                            operating_point=state_space_model["operating_point"],
                             input_matrix_d=state_space_model["b_disturbance"],
+                            lower_bounds_input=state_space_model["lower_bounds_input"],
+                            lower_bounds_slew_rate=state_space_model["lower_bounds_slew_rate"],
+                            lower_bounds_states=state_space_model["lower_bounds_states"],
+                            upper_bounds_input=state_space_model["upper_bounds_input"],
+                            upper_bounds_slew_rate=state_space_model["upper_bounds_slew_rate"],
+                            upper_bounds_states=state_space_model["upper_bounds_states"]
                             )
 
     state_space_model["mpc_model"] = mpc_model
@@ -135,6 +183,28 @@ def run_preismann_model_simulation(time_step, complete_model, prediction_horizon
     junction_n4 = Nodes(sim)[junction_ids[3]]
     junction_n5 = Nodes(sim)[junction_ids[4]]
 
+    network_elements = {
+        "tank1_depth": tank1.depth,
+        "tank1_volume": tank1.volume,
+        "tank1_flooding": tank1.flooding,
+        "tank1_inflow": tank1.total_inflow,
+        "tank2_depth": tank2.depth,
+        "tank2_volume": tank2.volume,
+        "tank2_flooding": tank2.flooding,
+        "tank2_inflow": tank2.total_inflow,
+        "junction_n1_depth": junction_n1.depth,
+        "junction_n2_depth": junction_n2.depth,
+        "junction_n3_depth": junction_n3.depth,
+        "junction_n4_depth": junction_n4.depth,
+        "junction_n5_depth": junction_n5.depth,
+        "pump1_flow": pump1.flow,
+        "pump1_current_setting": pump1.current_setting,
+        "pump1_target_setting": pump1.target_setting,
+        "pump2_flow": pump2.flow,
+        "pump2_current_setting": pump2.current_setting,
+        "pump2_target_setting": pump2.target_setting
+    }
+
     mpc_model = complete_model["mpc_model"]
     operating_point = complete_model["operating_point"]
 
@@ -145,13 +215,13 @@ def run_preismann_model_simulation(time_step, complete_model, prediction_horizon
     pump2.target_setting = int(0)
 
     # x initial conditions
-    states = [tank1.depth,
-              junction_n1.depth,
-              junction_n2.depth,
-              junction_n3.depth,
-              junction_n4.depth,
-              junction_n5.depth,
-              tank2.depth
+    states = [tank1.initial_depth,
+              junction_n1.initial_depth,
+              junction_n2.initial_depth,
+              junction_n3.initial_depth,
+              junction_n4.initial_depth,
+              junction_n5.initial_depth,
+              tank2.initial_depth
               ]
 
     # u_prev, initial control input
@@ -162,15 +232,13 @@ def run_preismann_model_simulation(time_step, complete_model, prediction_horizon
     ref = set_preismann_ref(prediction_horizon, complete_model["num_states"])
 
     # This disturbance is delta_disturbance between consecutive ones
-    disturbance = []
+    disturbance = ca.DM.zeros(prediction_horizon, 1)
 
     # To make the simulation precise,
     # make sure that the flow metrics are in Cubic Meters per Second [CMS]
     for idx, step in enumerate(sim):
 
-        # TODO: finish filling of dataframe
-        network_df = network_df.append(pd.Series([tank1.volume, tank1.depth, tank1.flooding, tank1.total_inflow,
-                                                  pump1.flow], index=network_df.columns), ignore_index=True)
+        network_df = network_df.append(network_elements, ignore_index=True)
 
         user_key_input = input("press s key to step, or \'r\' to run all steps, or q to quit")
 
@@ -180,7 +248,6 @@ def run_preismann_model_simulation(time_step, complete_model, prediction_horizon
         mpc_model.plot_progress(options={'drawU': 'U'})
         mpc_model.step(states, control_input)
 
-        # TODO: don't forget to add operating point
         control_input = control_input + mpc_model.get_next_control_input_change()
         pump1.target_setting = control_input[0]
         pump2.target_setting = control_input[1]
@@ -188,7 +255,6 @@ def run_preismann_model_simulation(time_step, complete_model, prediction_horizon
         sim.step_advance(time_step)
 
         # tank1.depth, hp1.depth, hp2.depth ... hp5.depth, tank2.depth
-        # this here is a python stl list, you cannot substruct like this safely
         states = [tank1.depth,
                   junction_n1.depth,
                   junction_n2.depth,
@@ -196,6 +262,6 @@ def run_preismann_model_simulation(time_step, complete_model, prediction_horizon
                   junction_n4.depth,
                   junction_n5.depth,
                   tank2.depth
-                  ] - operating_point
+                  ]
 
     return network_df
