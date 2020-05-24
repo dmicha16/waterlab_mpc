@@ -208,7 +208,7 @@ if __name__ == "__main__":
         "network_name": "epa_networks/project_network/project_network.inp",
         
         # EPA SWMM engine step size [seconds]
-        "sim_type": SimType.EULER,
+        "sim_type": SimType.PREISMANN,
         "sim_step_size": 10,
 
         # These have to be the names of the pumps and tanks from EPA SWMM
