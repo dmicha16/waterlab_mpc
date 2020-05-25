@@ -34,14 +34,15 @@ def set_euler_weight_matrices():
 
     # initially to ones to run the code
     # TODO: add proper Q and R matrices @Casper
-    Q = ca.DM(np.identity(7)) * 0
-    # TODO: take  look at the error please, you might need to use some casadi specific operations, because
-    #  now I think it's trying to default to python only syntax with Q[1,1]
-    Q[0, 0] = 1
-    Q[6, 6] = 1
-    R = ca.DM([[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 10000, 0], [0, 0, 0, 10000]])
+    Q = ca.DM(np.identity(7)) * 1
 
-    return [Q, R]
+    Q[0, 0] = 10
+    Q[6, 6] = 10
+    R = ca.DM([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]])
+
+    S = ca.DM([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 10000, 0], [0, 0, 0, 10000]])
+
+    return [Q, R, S]
 
 
 def set_euler_ref(prediction_horizon, num_states):
@@ -71,14 +72,21 @@ def make_euler_model(simulation_type, pred_horizon, disturb_magnitude):
     weight matrices.
     """
 
-    Ap = ca.DM([[1., 0., 0., 0., 0., 0., 0.], [0., 0.86386, 0.092822, 0., 0., 0., 0.], [0., 0.13614, 0.77104, 0.092822, 0., 0., 0.], [0., 0., 0.13614, 0.77104, 0.092822, 0., 0.], [0., 0., 0., 0.13614, 0.77104, 0.092822, 0.], [0., 0., 0., 0., 0.13614, 0.60133, 0.26253], [0., 0., 0., 0., 0., 0.30585, 0.73747]])
+    Ap = ca.DM([[1., 0., 0., 0., 0., 0., 0.], [0., 0.86386, 0.092822, 0., 0., 0., 0.],
+                [0., 0.13614, 0.77104, 0.092822, 0., 0., 0.], [0., 0., 0.13614, 0.77104, 0.092822, 0., 0.],
+                [0., 0., 0., 0.13614, 0.77104, 0.092822, 0.], [0., 0., 0., 0., 0.13614, 0.60133, 0.26253],
+                [0., 0., 0., 0., 0., 0.30585, 0.73747]])
 
-    Bp = ca.DM([[-1/15, 0, -1/15, 0], [1/4, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, -1/20, 0, -1/20]])
+    Bp = ca.DM([[-1 / 15, 0, -1 / 15, 0], [1 / 16, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0],
+                [0, -1 / 20, 0, -1 / 20]])
 
-    Bp_d = ca.DM([1/15, 0, 0, 0, 0, 0, 0])
+    Bp_d = ca.DM([1 / 15, 0, 0, 0, 0, 0, 0])
+
+
 
     # ca.DM([0., -0.028882, 0., 0., 0., -0.10716, 0.13604])
-    operating_point = ca.DM([0., -0.17664, 0., 0., 0., 0, 0.1766]) * 1
+    # We ignore the operating point until we can soften the constraints
+    operating_point = ca.DM([0., -0.17664, 0., 0., 0., 0, 0.1766]) * 0
     # Un-constraint
     lower_bounds_input = None
     lower_bounds_slew_rate = None
@@ -89,7 +97,7 @@ def make_euler_model(simulation_type, pred_horizon, disturb_magnitude):
 
     # Actual constraints
     lower_bounds_input = ca.DM([0, 0, 0, 0])
-    # lower_bounds_slew_rate = ca.DM([-ca.inf, -ca.inf, -ca.inf, -ca.inf])
+    lower_bounds_slew_rate = ca.DM([-ca.inf, -ca.inf, -ca.inf, -ca.inf])
     lower_bounds_states = ca.DM([0, 0, 0, 0, 0, 0, 0])
     upper_bounds_input = ca.DM([2, 2, ca.inf, ca.inf])
     upper_bounds_slew_rate = ca.DM([1, 1, ca.inf, ca.inf])
@@ -105,13 +113,14 @@ def make_euler_model(simulation_type, pred_horizon, disturb_magnitude):
 
     # Initial conditions here are needed for the right dimensions in the MPC
     [x0, u0] = set_euler_initial_conditions()
-    [Q, R] = set_euler_weight_matrices()
+    [Q, R, S] = set_euler_weight_matrices()
 
     initial_state_space_model = {"system_model": Ap,
                                  "b_matrix": Bp,
                                  "b_disturbance": Bp_d,
                                  "Q": Q,
                                  "R": R,
+                                 "S": S,
                                  "x0": x0,
                                  "u0": u0,
                                  "operating_point": operating_point,
@@ -153,6 +162,7 @@ def make_euler_mpc_model(state_space_model, prediction_horizon, control_horizon)
                             prediction_horizon,
                             state_space_model["Q"],
                             state_space_model["R"],
+                            input_cost=state_space_model["S"],
                             initial_control_signal=state_space_model["u0"],
                             ref=ref,
                             operating_point=state_space_model["operating_point"],
@@ -171,12 +181,14 @@ def make_euler_mpc_model(state_space_model, prediction_horizon, control_horizon)
 
 
 def run_euler_model_simulation(time_step, complete_model, prediction_horizon, sim, pump_ids, tank_ids, junction_ids,
-                               network_df):
+                               network_df, disturb_manager):
 
     pump1 = Links(sim)[pump_ids[0]]
     pump2 = Links(sim)[pump_ids[1]]
     tank1 = Nodes(sim)[tank_ids[0]]
     tank2 = Nodes(sim)[tank_ids[1]]
+
+    dist_pump = Links(sim)[pump_ids[2]]
 
     junction_n1 = Nodes(sim)[junction_ids[0]]
     junction_n2 = Nodes(sim)[junction_ids[1]]
@@ -233,21 +245,37 @@ def run_euler_model_simulation(time_step, complete_model, prediction_horizon, si
     ref = set_euler_ref(prediction_horizon, complete_model["num_states"])
 
     # This disturbance is delta_disturbance between consecutive ones
-    disturbance = ca.DM.zeros(prediction_horizon, 1)
+
+    # disturbance = ca.DM.zeros(prediction_horizon, 1)
+
+    steps_left = 150
 
     # To make the simulation precise,
     # make sure that the flow metrics are in Cubic Meters per Second [CMS]
     for idx, step in enumerate(sim):
 
+        future_delta_disturb = disturb_manager.get_k_delta_disturbance(idx, prediction_horizon)
+        prev_disturb = disturb_manager.get_k_disturbance(idx - 1, 1)
+        current_distub = disturb_manager.get_k_disturbance(idx, 1)
+
+        dist_pump.target_setting = current_distub
+
         network_df = network_df.append(network_elements, ignore_index=True)
 
-        user_key_input = input("press s key to step, or \'r\' to run all steps, or q to quit")
+        if steps_left <= 0:
 
-        if user_key_input == "r":
-            print('R')
+            mpc_model.plot_progress(options={'drawU': 'U'})
+            user_key_input = input("press s key to step, or \'r\' to run all steps, or q to quit")
+            try:
+                steps_left = int(user_key_input)
+            except:
+                pass
+        else:
+            print(steps_left)
+            steps_left -= 1
 
-        mpc_model.plot_progress(options={'drawU': 'U'})
-        mpc_model.step(states, control_input, prev_disturbance=ca.DM([1]))
+
+        mpc_model.step(states, control_input, disturbance=future_delta_disturb, prev_disturbance=prev_disturb)
 
         control_input = control_input + mpc_model.get_next_control_input_change()
         pump1.target_setting = control_input[0]
