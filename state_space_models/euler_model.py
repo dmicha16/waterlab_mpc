@@ -61,13 +61,12 @@ def set_euler_ref(prediction_horizon, num_states):
     return ref
 
 
-def make_euler_model(simulation_type, pred_horizon, disturb_magnitude):
+def make_euler_model(simulation_type, pred_horizon):
     """
     Construct the Euler model based state space model, using the prediction horizon and the
     disturbance magnitude
     :param simulation_type: This is to denote in the state_space_model which type of simulation it is.
     :param pred_horizon: Length of the prediction horizon
-    :param disturb_magnitude: Magnitude of the disturbances
     :return: Entire state space model of the Euler model with both the initial conditions and with the
     weight matrices.
     """
@@ -81,8 +80,6 @@ def make_euler_model(simulation_type, pred_horizon, disturb_magnitude):
                 [0, -1 / 20, 0, -1 / 20]])
 
     Bp_d = ca.DM([1 / 15, 0, 0, 0, 0, 0, 0])
-
-
 
     # ca.DM([0., -0.028882, 0., 0., 0., -0.10716, 0.13604])
     # We ignore the operating point until we can soften the constraints
@@ -107,34 +104,30 @@ def make_euler_model(simulation_type, pred_horizon, disturb_magnitude):
     num_states = Ap.size1()
     num_inputs = Bp.size2()
 
-    # TODO: check if this is the right thing to put here
-    # TODO: make sure when we feed the disturbance it's also lifted to Dd from D?
-    disturbance_array = (np.random.rand(pred_horizon * num_inputs) - 0.5) * disturb_magnitude
-
     # Initial conditions here are needed for the right dimensions in the MPC
     [x0, u0] = set_euler_initial_conditions()
     [Q, R, S] = set_euler_weight_matrices()
 
-    initial_state_space_model = {"system_model": Ap,
-                                 "b_matrix": Bp,
-                                 "b_disturbance": Bp_d,
-                                 "Q": Q,
-                                 "R": R,
-                                 "S": S,
-                                 "x0": x0,
-                                 "u0": u0,
-                                 "operating_point": operating_point,
-                                 "num_states": num_states,
-                                 "num_inputs": num_inputs,
-                                 "sim_type": simulation_type,
-                                 "disturbance_array": disturbance_array,
-                                 "lower_bounds_input": lower_bounds_input,
-                                 "lower_bounds_slew_rate": lower_bounds_slew_rate,
-                                 "lower_bounds_states": lower_bounds_states,
-                                 "upper_bounds_input": upper_bounds_input,
-                                 "upper_bounds_slew_rate": upper_bounds_slew_rate,
-                                 "upper_bounds_states": upper_bounds_states
-                                 }
+    initial_state_space_model = {
+        "system_model": Ap,
+        "b_matrix": Bp,
+        "b_disturbance": Bp_d,
+        "Q": Q,
+        "R": R,
+        "S": S,
+        "x0": x0,
+        "u0": u0,
+        "operating_point": operating_point,
+        "num_states": num_states,
+        "num_inputs": num_inputs,
+        "sim_type": simulation_type,
+        "lower_bounds_input": lower_bounds_input,
+        "lower_bounds_slew_rate": lower_bounds_slew_rate,
+        "lower_bounds_states": lower_bounds_states,
+        "upper_bounds_input": upper_bounds_input,
+        "upper_bounds_slew_rate": upper_bounds_slew_rate,
+        "upper_bounds_states": upper_bounds_states
+    }
 
     print("Euler model is constructed.")
 
@@ -181,14 +174,13 @@ def make_euler_mpc_model(state_space_model, prediction_horizon, control_horizon)
 
 
 def run_euler_model_simulation(time_step, complete_model, prediction_horizon, sim, pump_ids, tank_ids, junction_ids,
-                               network_df, disturb_manager):
-
+                               network_df, disturb_manager, num_sim_steps):
     pump1 = Links(sim)[pump_ids[0]]
     pump2 = Links(sim)[pump_ids[1]]
     tank1 = Nodes(sim)[tank_ids[0]]
     tank2 = Nodes(sim)[tank_ids[1]]
 
-    dist_pump = Links(sim)[pump_ids[2]]
+    disturb_pump = Links(sim)[pump_ids[2]]
 
     junction_n1 = Nodes(sim)[junction_ids[0]]
     junction_n2 = Nodes(sim)[junction_ids[1]]
@@ -219,7 +211,6 @@ def run_euler_model_simulation(time_step, complete_model, prediction_horizon, si
     }
 
     mpc_model = complete_model["mpc_model"]
-    operating_point = complete_model["operating_point"]
 
     # start the simulation with the pumps closed
     # https://pyswmm.readthedocs.io/en/stable/reference/nodes.html
@@ -244,36 +235,32 @@ def run_euler_model_simulation(time_step, complete_model, prediction_horizon, si
     # TODO: make sure to add a proper reference
     ref = set_euler_ref(prediction_horizon, complete_model["num_states"])
 
-    # This disturbance is delta_disturbance between consecutive ones
-
-    # disturbance = ca.DM.zeros(prediction_horizon, 1)
-
-    steps_left = 150
-
     # To make the simulation precise,
     # make sure that the flow metrics are in Cubic Meters per Second [CMS]
     for idx, step in enumerate(sim):
 
         future_delta_disturb = disturb_manager.get_k_delta_disturbance(idx, prediction_horizon)
         prev_disturb = disturb_manager.get_k_disturbance(idx - 1, 1)
-        current_distub = disturb_manager.get_k_disturbance(idx, 1)
+        current_disturb = disturb_manager.get_k_disturbance(idx, 1)
 
-        dist_pump.target_setting = current_distub
+        disturb_pump.target_setting = current_disturb
 
         network_df = network_df.append(network_elements, ignore_index=True)
 
-        if steps_left <= 0:
+        if num_sim_steps <= 0:
 
             mpc_model.plot_progress(options={'drawU': 'U'})
-            user_key_input = input("press s key to step, or \'r\' to run all steps, or q to quit")
+            user_key_input = input("Press any key to step, or q to quit")
             try:
-                steps_left = int(user_key_input)
-            except:
+                num_sim_steps = int(user_key_input)
+            except ValueError:
                 pass
-        else:
-            print(steps_left)
-            steps_left -= 1
 
+            if user_key_input == "q":
+                break
+        else:
+            print(num_sim_steps)
+            num_sim_steps -= 1
 
         mpc_model.step(states, control_input, disturbance=future_delta_disturb, prev_disturbance=prev_disturb)
 
@@ -285,9 +272,6 @@ def run_euler_model_simulation(time_step, complete_model, prediction_horizon, si
 
         # tank1.depth, hp1.depth, hp2.depth ... hp5.depth, tank2.depth
         # this here is a python stl list, you cannot subtract like this safely
-
-        # TODO: also make sure to have some form of controller termination of the simulation i.e. NOT ctrl-c,
-        #  so the logging can exit and return the filled dataframe below
 
         states = [tank1.depth,
                   junction_n1.depth,
