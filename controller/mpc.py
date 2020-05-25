@@ -2,7 +2,7 @@ import casadi as ca
 
 
 def gen_mpc_solver(A, B, Hu, Hp, Q, R, B_d=None, S=None, operating_point=None):
-    '''
+    """
     Consult at p55 in Jan M. book for better understanding as well as casadi documentation
         :param A:(mxm) Model dynamics matrix of type casadi.DM
         :param B:(mxn) Input dynamics matrix of type casadi.DM
@@ -11,7 +11,7 @@ def gen_mpc_solver(A, B, Hu, Hp, Q, R, B_d=None, S=None, operating_point=None):
         :param Q:(mxm) State cost matrix of type casadi.DM
         :param R:(mxm) Input change cost matrix of type casadi.DM
         :param B_d:(mxn)
-    '''
+    """
 
     if B_d is None:
         B_d = B
