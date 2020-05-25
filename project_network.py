@@ -100,7 +100,7 @@ def make_mpc_model(ss_model, pred_horizon, ctrl_horizon):
     return aug_state_space_model
 
 
-def run_simulation(simul_config, data_df, complete_sys_model):
+def run_simulation(simul_config, data_df, complete_sys_model, disturb_manager):
 
     if simul_config["sim_type"] == SimType.CUSTOM_MODEL:
         custom_model.run_custom_model_simulation(complete_sys_model, simul_config["prediction_horizon"])
@@ -115,7 +115,7 @@ def run_simulation(simul_config, data_df, complete_sys_model):
                                                              simul_config["pumps"],
                                                              simul_config["tanks"],
                                                              simul_config["junctions"],
-                                                             data_df)
+                                                             data_df, disturb_manager)
 
         elif simul_config["sim_type"] == SimType.PREISMANN:
             data_df = preismann_model.run_preismann_model_simulation(simul_config["sim_step_size"],
@@ -208,11 +208,11 @@ if __name__ == "__main__":
         "network_name": "epa_networks/project_network/project_network.inp",
         
         # EPA SWMM engine step size [seconds]
-        "sim_type": SimType.PREISMANN,
+        "sim_type": SimType.EULER,
         "sim_step_size": 10,
 
         # These have to be the names of the pumps and tanks from EPA SWMM
-        "pumps": ["FP1", "FP2"],
+        "pumps": ["FP1", "FP2", "FP3"],
         "tanks": ["T1", "T2"],
         "junctions": ["N1", "N1", "N2", "N3", "N4", "N5"],
 
@@ -233,10 +233,12 @@ if __name__ == "__main__":
         "disturbance_data_name": "data/disturbance_data/hour_poop_rain.csv",
         "use_rain": True,
         "use_poop": True,
-        "rain_gain": 13,
-        "poop_gain": 10,
+        "rain_gain": 50,
+        "poop_gain": 1.5,
         # "use_random": False
     }
+
+    disturb_manager = disturbance_reader.Disturbance(disturb_config)
 
     #Make sure to select the right type of model you want to run the MPC on
     state_space_model = define_state_space_model(sim_config["sim_type"], sim_config["prediction_horizon"],
@@ -244,7 +246,7 @@ if __name__ == "__main__":
 
     complete_model = make_mpc_model(state_space_model, sim_config["prediction_horizon"], sim_config["control_horizon"])
 
-    simulation_df = run_simulation(sim_config, network_df, complete_model)
+    simulation_df = run_simulation(sim_config, network_df, complete_model, disturb_manager)
 
     save_data(simulation_df, sim_config, disturb_config)
 
