@@ -131,7 +131,8 @@ class MpcObj:
         self.upsilon_d = mpc.gen_upsilon(dynamics_matrix, input_matrix_d, prediction_horizon)
         self.theta_d = mpc.gen_theta(self.upsilon_d, self.input_matrix_d, prediction_horizon)
         self.solver = self.lift(dynamics_matrix, input_matrix, control_horizon, prediction_horizon, state_cost,
-                                input_change_cost, input_matrix_d, operating_point=operating_point)
+                                input_change_cost, input_matrix_d, operating_point=operating_point,
+                                input_cost=input_cost)
 
         self.result = None
         # Setup step variables
@@ -281,7 +282,7 @@ class MpcObj:
         return self.log_dU[:, 0:]
 
     def lift(self, dynamics_matrix=None, input_matrix=None, control_horizon=None, prediction_horizon=None,
-             state_cost=None, input_change_cost=None, input_matrix_d=None, operating_point=None):
+             state_cost=None, input_change_cost=None, input_matrix_d=None, operating_point=None, input_cost=None):
         # TODO: update
         if dynamics_matrix is not None and dynamics_matrix.shape == self.dynamics_matrix.shape:
             self.dynamics_matrix = dynamics_matrix
@@ -299,6 +300,9 @@ class MpcObj:
         if input_change_cost is not None and input_change_cost.shape == self.state_cost.shape:
             self.input_change_cost = input_change_cost
             self.input_change_cost_block_matrix = mpc.blockdiag(input_change_cost, control_horizon)
+        if input_cost is not None and input_cost.shape == self.state_cost.shape:
+            self.input_cost = input_cost
+            self.input_cost_block_matrix = mpc.blockdiag(input_cost, control_horizon)
 
         self.psi = mpc.gen_psi(self.dynamics_matrix, self.prediction_horizon)
         self.upsilon = mpc.gen_upsilon(self.dynamics_matrix, self.input_matrix, self.prediction_horizon)
@@ -308,7 +312,8 @@ class MpcObj:
         self.solver = mpc.gen_mpc_solver(self.dynamics_matrix, self.input_matrix, self.control_horizon,
                                          self.prediction_horizon,
                                          self.state_cost_block_matrix, self.input_change_cost_block_matrix,
-                                         self.input_matrix_d, operating_point=operating_point)
+                                         self.input_matrix_d, operating_point=operating_point,
+                                         S=self.input_cost_block_matrix)
         return self.solver
 
     def print_result(self):
@@ -444,7 +449,7 @@ class MpcObj:
                          label="State {}={:.3f}".format(s, float(self.initial_state[s])))
 
         plt.ylabel('States')
-        ax1.legend()
+        ax1.legend(bbox_to_anchor=(1.05, 1.0), loc='upper left')
         ax2 = plt.subplot(212, sharex=ax1)
 
         for i in range(0, self.inputs):
@@ -469,7 +474,7 @@ class MpcObj:
                     # plt.plot(t[0:2], ca.vertcat(self.u_prev[i], idU[0]), '.', color=col)
                     plt.plot(t[self.k], idU[self.k], 'o', color=col, label="dU{}={:.3f}".format(i, float(idU[self.k])))
                     # plt.plot(t[0], idU[0], 'r.')
-        ax2.legend()
+        ax2.legend(bbox_to_anchor=(1.05, 1.0), loc='upper left')
 
         plt.xlabel('Time in steps')
         plt.ylabel(opts['drawU'])

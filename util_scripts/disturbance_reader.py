@@ -90,7 +90,7 @@ class Disturbance:
 
             k = 0
             pred_horizon = pred_horizon - 1
-            rows_k_to_pred_horizon = self.disturbance_df.iloc[k:k + pred_horizon]
+            rows_k_to_pred_horizon = self.disturbance_df.iloc[k:k + pred_horizon].copy()
 
             # Create empty DataFrame of 1 line with zeros and then append the sliced disturbance rows to the bottom
             zero_line_df = pd.DataFrame(columns=["Poop", "Rain"])
@@ -103,7 +103,7 @@ class Disturbance:
             # This happens when the k-th index is comfortably in the middle of the DataFrame and the horizon doesn't
             # point outside of the DataFrame.
 
-            rows_k_to_pred_horizon = self.disturbance_df.iloc[k:k + pred_horizon]
+            rows_k_to_pred_horizon = self.disturbance_df.iloc[k:k + pred_horizon].copy()
             # print(rows_k_to_pred_horizon)
             return rows_k_to_pred_horizon
 
@@ -119,7 +119,7 @@ class Disturbance:
         else:
             # This happens when the horizon points to the outside of the DataFrame, but the k-th index is still within
 
-            rows_k_to_pred_horizon = self.disturbance_df.iloc[k:-1]
+            rows_k_to_pred_horizon = self.disturbance_df.iloc[k:-1].copy()
             num_slice_row = rows_k_to_pred_horizon.shape[0]
 
             # Create missing entries and append to the series sliced to have the length of the desired horizon
@@ -158,7 +158,7 @@ class Disturbance:
 
             # df.loc[:,'quantity'] *= -1
             rows_k_to_pred_horizon.loc[:, "Rain"] *= self.rain_gain
-            rows_k_to_pred_horizon.loc[:, "Poop"] *= self.rain_gain
+            rows_k_to_pred_horizon.loc[:, "Poop"] *= self.poop_gain
 
             rows_k_to_pred_horizon["Combined"] = rows_k_to_pred_horizon["Rain"] + rows_k_to_pred_horizon["Poop"]
 

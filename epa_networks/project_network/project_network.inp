@@ -17,10 +17,10 @@ REPORT_START_DATE    05/02/2020
 REPORT_START_TIME    00:00:00
 END_DATE             05/02/2020
 END_TIME             06:00:00
-SWEEP_START          1/1
+SWEEP_START          01/01
 SWEEP_END            12/31
 DRY_DAYS             0
-REPORT_STEP          00:15:00
+REPORT_STEP          00:01:00
 WET_STEP             00:05:00
 DRY_STEP             01:00:00
 ROUTING_STEP         0:00:30 
@@ -31,9 +31,9 @@ NORMAL_FLOW_LIMITED  BOTH
 FORCE_MAIN_EQUATION  H-W
 VARIABLE_STEP        0.75
 LENGTHENING_STEP     0
-MIN_SURFAREA         0
-MAX_TRIALS           0
-HEAD_TOLERANCE       0
+MIN_SURFAREA         1.167
+MAX_TRIALS           8
+HEAD_TOLERANCE       0.0015
 SYS_FLOW_TOL         5
 LAT_FLOW_TOL         5
 MINIMUM_STEP         0.5
@@ -62,8 +62,9 @@ out              0          FREE                        NO
 [STORAGE]
 ;;Name           Elev.    MaxDepth   InitDepth  Shape      Curve Name/Params            N/A      Fevap    Psi      Ksat     IMD     
 ;;-------------- -------- ---------- ----------- ---------- ---------------------------- -------- --------          -------- --------
-T1               0        3          1          FUNCTIONAL 150       0         0        0        0       
+T1               0        3          0          FUNCTIONAL 150       0         0        0        0       
 T2               9        2          0          FUNCTIONAL 200       0         0        0        0       
+T3               0        1000       950        FUNCTIONAL 1000      0         0        0        0       
 
 [CONDUITS]
 ;;Name           From Node        To Node          Length     Roughness  InOffset   OutOffset  InitFlow   MaxFlow   
@@ -77,8 +78,9 @@ P5               N5               T2               40         0.01       0      
 [PUMPS]
 ;;Name           From Node        To Node          Pump Curve       Status   Sartup Shutoff 
 ;;-------------- ---------------- ---------------- ---------------- ------ -------- --------
-FP1              T1               N1               const_curve      ON       0        0       
-FP2              T2               out              const_curve      ON       0        0       
+FP1              T1               N1               const_curve      OFF      0        0       
+FP2              T2               out              const_curve      OFF      0        0       
+FP3              T3               T1               const_curve      OFF      0        0       
 
 [XSECTIONS]
 ;;Link           Shape        Geom1            Geom2      Geom3      Geom4      Barrels    Culvert   
@@ -88,11 +90,6 @@ P2               CIRCULAR     1                0          0          0          
 P3               CIRCULAR     1                0          0          0          1                    
 P4               CIRCULAR     1                0          0          0          1                    
 P5               CIRCULAR     1                0          0          0          1                    
-
-[INFLOWS]
-;;Node           Constituent      Time Series      Type     Mfactor  Sfactor  Baseline Pattern
-;;-------------- ---------------- ---------------- -------- -------- -------- -------- --------
-T1               FLOW             ""               FLOW     1.0      1.0      1       
 
 [CURVES]
 ;;Name           Type       X-Value    Y-Value   
@@ -122,6 +119,7 @@ N5               3281.430           1314.879
 out              8229.527           -276.817          
 T1               -2981.546          2537.486          
 T2               3489.043           -115.340          
+T3               -4942.330          2618.224          
 
 [VERTICES]
 ;;Link           X-Coord            Y-Coord           

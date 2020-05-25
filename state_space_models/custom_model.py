@@ -43,7 +43,7 @@ def set_custom_model_ref(prediction_horizon, num_states):
     return ref
 
 
-def make_custom_model_model(simulation_type, pred_horizon, disturb_magnitude):
+def make_custom_model_model(simulation_type, pred_horizon, disturb_magnitude=5):
     """
     Construct the Custom Model model based state space model, using the prediction horizon and the
     disturbance magnitude
