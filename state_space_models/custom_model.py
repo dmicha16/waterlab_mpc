@@ -71,7 +71,6 @@ def make_custom_model_model(simulation_type, pred_horizon, disturb_magnitude=5):
     B * const_var + (np.random.rand(B.size1(), B.size2()) - 0.5) * rand_var
     B_d * const_var + (np.random.rand(B_d.size1(), B_d.size2()) - 0.5) * rand_var
 
-    # TODO: check if this is the right thing to put here
     disturbance_array = (np.random.rand(pred_horizon * num_inputs) - 0.5) * disturb_magnitude
 
     [x0, u0] = set_custom_model_inital_conditions()
@@ -129,7 +128,6 @@ def make_custom_mpc_model(state_space_model, prediction_horizon, control_horizon
 
 def run_custom_model_simulation(complete_model, pred_horizon):
 
-    # TODO: move this var somewhere better
     num_steps = 50
 
     mpc_model = complete_model["mpc_model"]
@@ -168,7 +166,6 @@ def run_custom_model_simulation(complete_model, pred_horizon):
             user_key_input = input("press s key to step, or \'r\' to run all steps, or q to quit")
 
         elif user_key_input == "rw":
-            # TODO: make functionality in MPC to not plot each step, only the last file
             print("Running the simulation without plots.")
             mpc_model.step(x, u, ref, disturbance)
 

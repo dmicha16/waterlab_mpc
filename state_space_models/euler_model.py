@@ -219,14 +219,15 @@ def run_euler_model_simulation(time_step, complete_model, prediction_horizon, si
     pump2.target_setting = PumpSetting.CLOSED.value
 
     # x initial conditions
-    states = [tank1.initial_depth,
-              junction_n1.initial_depth,
-              junction_n2.initial_depth,
-              junction_n3.initial_depth,
-              junction_n4.initial_depth,
-              junction_n5.initial_depth,
-              tank2.initial_depth
-              ]
+    states = [
+        tank1.initial_depth,
+        junction_n1.initial_depth,
+        junction_n2.initial_depth,
+        junction_n3.initial_depth,
+        junction_n4.initial_depth,
+        junction_n5.initial_depth,
+        tank2.initial_depth
+    ]
 
     # u_prev, initial control input
     control_input = ca.DM.zeros(complete_model["num_inputs"], 1)
@@ -273,13 +274,37 @@ def run_euler_model_simulation(time_step, complete_model, prediction_horizon, si
         # tank1.depth, hp1.depth, hp2.depth ... hp5.depth, tank2.depth
         # this here is a python stl list, you cannot subtract like this safely
 
-        states = [tank1.depth,
-                  junction_n1.depth,
-                  junction_n2.depth,
-                  junction_n3.depth,
-                  junction_n4.depth,
-                  junction_n5.depth,
-                  tank2.depth
-                  ]
+        states = [
+            tank1.depth,
+            junction_n1.depth,
+            junction_n2.depth,
+            junction_n3.depth,
+            junction_n4.depth,
+            junction_n5.depth,
+            tank2.depth
+        ]
+
+        network_elements = {
+            "tank1_depth": tank1.depth,
+            "tank1_volume": tank1.volume,
+            "tank1_flooding": tank1.flooding,
+            "tank1_inflow": tank1.total_inflow,
+            "tank2_depth": tank2.depth,
+            "tank2_volume": tank2.volume,
+            "tank2_flooding": tank2.flooding,
+            "tank2_inflow": tank2.total_inflow,
+            "junction_n1_depth": junction_n1.depth,
+            "junction_n2_depth": junction_n2.depth,
+            "junction_n3_depth": junction_n3.depth,
+            "junction_n4_depth": junction_n4.depth,
+            "junction_n5_depth": junction_n5.depth,
+            "pump1_flow": pump1.flow,
+            "pump1_current_setting": pump1.current_setting,
+            "pump1_target_setting": pump1.target_setting,
+            "pump2_flow": pump2.flow,
+            "pump2_current_setting": pump2.current_setting,
+            "pump2_target_setting": pump2.target_setting,
+            "disturbance": float(current_disturb[0])
+        }
 
     return network_df
