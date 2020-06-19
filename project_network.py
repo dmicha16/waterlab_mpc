@@ -6,8 +6,6 @@ Created on Sun May 14 20:12:58 2020
 @author: davidm
 """
 
-import matplotlib.pyplot as plt
-
 import os
 import json
 
@@ -16,19 +14,19 @@ import pandas as pd
 from datetime import datetime
 from pyswmm import Simulation
 from util_scripts import disturbance_reader
-import networkcontrol as controller
-from controller import mpc, mpco
+import tikz_plot_generator
 
 from enum import Enum
 
 from state_space_models import euler_model, \
-    custom_model, preismann_model
+    custom_model, preismann_model, local_model
 
 
 class SimType(Enum):
     EULER = 1
     PREISMANN = 2
     CUSTOM_MODEL = 3
+    LOCAL_MODEL = 4
 
 
 def print_welcome_msg():
@@ -61,6 +59,12 @@ def define_state_space_model(simulation_type, pred_horizon):
     elif simulation_type == SimType.CUSTOM_MODEL:
         initial_state_space_model = custom_model.make_custom_model_model(simulation_type, pred_horizon)
 
+    elif simulation_type == SimType.LOCAL_MODEL:
+        initial_state_space_model = {
+            "sim_type": SimType.LOCAL_MODEL
+        }
+
+
     else:
         print("Default, going with generic model.")
         initial_state_space_model = custom_model.make_custom_model_model(simulation_type, pred_horizon)
@@ -88,6 +92,9 @@ def make_mpc_model(ss_model, pred_horizon, ctrl_horizon):
     elif simulation_type == SimType.CUSTOM_MODEL:
         aug_state_space_model = preismann_model.make_preismann_mpc_model(ss_model, pred_horizon,
                                                                          ctrl_horizon)
+    elif simulation_type == SimType.LOCAL_MODEL:
+        aug_state_space_model = ss_model
+
     else:
         aug_state_space_model = preismann_model.make_preismann_mpc_model(ss_model, pred_horizon,
                                                                          ctrl_horizon)
@@ -125,6 +132,17 @@ def run_simulation(simul_config, data_df, complete_sys_model, disturb_manager):
                                                                      data_df,
                                                                      disturb_manager,
                                                                      simul_config["num_plot_steps"])
+
+        elif simul_config["sim_type"] == SimType.LOCAL_MODEL:
+            data_df = local_model.run_local_model_simulation(simul_config["sim_step_size"],
+                                                             sim,
+                                                             simul_config["pumps"],
+                                                             simul_config["tanks"],
+                                                             simul_config["junctions"],
+                                                             data_df,
+                                                             disturb_manager,
+                                                             simul_config["num_plot_steps"])
+
         else:
             # There is no other type of simulation, you should probably make sure you selected the correct one.
             print("No simulation is selected.")
@@ -157,7 +175,7 @@ def save_data(sim_df, simulation_config, disturbance_config):
 
     # TODO: remove enum dot from name
     file_name = f"{path}/mpc_simulation_df_{timestamp_hour}_{simulation_type}.pkl"
-    json_file_name = file_name = f"{path}/mpc_simulation_df_{timestamp_hour}_{simulation_type}.json"
+    json_file_name = f"{path}/mpc_simulation_df_{timestamp_hour}_{simulation_type}.json"
 
     # It is possible to just simply add more info the json with this one dictionary below, by updating the entries
     combined_dict = {
@@ -199,6 +217,7 @@ if __name__ == "__main__":
         'pump2_flow'
         'pump2_current_setting'
         'pump2_target_setting'
+        'disturbance'
     ]
     network_df = pd.DataFrame(columns=columns)
 
@@ -206,10 +225,10 @@ if __name__ == "__main__":
 
         # Select EPA SWMM network topology .inp
         "network_name": "epa_networks/project_network/project_network.inp",
-        
+
         # EPA SWMM engine step size [seconds]
-        "sim_type": SimType.PREISMANN,
-        "sim_step_size": 10,
+        "sim_type": SimType.LOCAL_MODEL,
+        "sim_step_size": 12.65,
 
         # Number of steps before the plotter plots anything
         "num_plot_steps": 150,
@@ -230,26 +249,27 @@ if __name__ == "__main__":
     # If you do not wish to use any gains on the data,
     # set either rain_gain or poop_gain to 1.
     # It also possible to select which disturbance you want to use
-    # And later, I'll also add a functionality for the Gaussian gain into the model
     disturb_config = {
         "disturbance_data_name": "data/disturbance_data/hour_poop_rain.csv",
         "use_rain": True,
         "use_poop": True,
-        "rain_gain": 1,
-        "poop_gain": 1,
+        "rain_gain": 5.6,
+        "poop_gain": 1.12,
         # "use_random": False
     }
 
     disturb_manager = disturbance_reader.Disturbance(disturb_config)
 
     # Make sure to select the right type of model you want to run the MPC on
-    state_space_model = define_state_space_model(sim_config["sim_type"], sim_config["prediction_horizon"],)
+    state_space_model = define_state_space_model(sim_config["sim_type"], sim_config["prediction_horizon"], )
 
     complete_model = make_mpc_model(state_space_model, sim_config["prediction_horizon"], sim_config["control_horizon"])
 
     simulation_df = run_simulation(sim_config, network_df, complete_model, disturb_manager)
 
     save_data(simulation_df, sim_config, disturb_config)
+
+    tikz_plot_generator.plot_df(simulation_df)
 
     print("Simulation is finished.")
 
