@@ -11,7 +11,7 @@ class MpcObj:
                  ref=None, initial_control_signal=None, input_matrix_d=None, operating_point=None,
                  lower_bounds_states=None, upper_bounds_states=None,
                  lower_bounds_slew_rate=None, upper_bounds_slew_rate=None,  # TODO slew
-                 lower_bounds_input=None, upper_bounds_input=None):
+                 lower_bounds_input=None, upper_bounds_input=None, input_linear_cost=None):
 
         """
         :param dynamics_matrix:(states x states) Model dynamics matrix of type casadi.DM
@@ -46,9 +46,14 @@ class MpcObj:
             self.input_matrix_d = input_matrix_d
 
         if input_cost is None:
-            self.input_cost = input_change_cost
+            self.input_cost = ca.DM.zeros(input_change_cost.size1(),input_change_cost.size2())
         else:
             self.input_cost = input_cost
+
+        if input_linear_cost is None:
+            self.input_linear_cost = ca.DM.zeros(input_change_cost.size1(),input_change_cost.size2())
+        else:
+            self.input_linear_cost = input_linear_cost
 
         if operating_point is None:
             self.operating_point = ca.DM.zeros(self.states)
@@ -124,6 +129,7 @@ class MpcObj:
         self.input_change_cost = input_change_cost
         self.input_change_cost_block_matrix = mpc.blockdiag(self.input_change_cost, control_horizon)
         self.input_cost_block_matrix = mpc.blockdiag(self.input_cost, control_horizon)
+        self.input_linear_cost_block_matrix = mpc.blockdiag(self.input_linear_cost, control_horizon)
         self.psi = mpc.gen_psi(dynamics_matrix, prediction_horizon)
         self.upsilon = mpc.gen_upsilon(dynamics_matrix, input_matrix, prediction_horizon)
         self.theta = mpc.gen_theta(self.upsilon, input_matrix, control_horizon)
@@ -132,7 +138,7 @@ class MpcObj:
         self.theta_d = mpc.gen_theta(self.upsilon_d, self.input_matrix_d, prediction_horizon)
         self.solver = self.lift(dynamics_matrix, input_matrix, control_horizon, prediction_horizon, state_cost,
                                 input_change_cost, input_matrix_d, operating_point=operating_point,
-                                input_cost=input_cost)
+                                input_cost=input_cost,input_linear_cost=input_linear_cost)
 
         self.result = None
         # Setup step variables
@@ -282,7 +288,7 @@ class MpcObj:
         return self.log_dU[:, 0:]
 
     def lift(self, dynamics_matrix=None, input_matrix=None, control_horizon=None, prediction_horizon=None,
-             state_cost=None, input_change_cost=None, input_matrix_d=None, operating_point=None, input_cost=None):
+             state_cost=None, input_change_cost=None, input_matrix_d=None, operating_point=None, input_cost=None, input_linear_cost=None):
         # TODO: update
         if dynamics_matrix is not None and dynamics_matrix.shape == self.dynamics_matrix.shape:
             self.dynamics_matrix = dynamics_matrix
@@ -300,9 +306,12 @@ class MpcObj:
         if input_change_cost is not None and input_change_cost.shape == self.state_cost.shape:
             self.input_change_cost = input_change_cost
             self.input_change_cost_block_matrix = mpc.blockdiag(input_change_cost, control_horizon)
-        if input_cost is not None and input_cost.shape == self.state_cost.shape:
+        if input_cost is not None and input_cost.shape == self.input_cost.shape:
             self.input_cost = input_cost
             self.input_cost_block_matrix = mpc.blockdiag(input_cost, control_horizon)
+        if input_linear_cost is not None and input_linear_cost.shape == self.input_linear_cost.shape:
+            self.input_linear_cost = input_linear_cost
+            self.input_linear_cost_block_matrix = mpc.blockdiag(input_linear_cost, control_horizon)
 
         self.psi = mpc.gen_psi(self.dynamics_matrix, self.prediction_horizon)
         self.upsilon = mpc.gen_upsilon(self.dynamics_matrix, self.input_matrix, self.prediction_horizon)
@@ -313,7 +322,7 @@ class MpcObj:
                                          self.prediction_horizon,
                                          self.state_cost_block_matrix, self.input_change_cost_block_matrix,
                                          self.input_matrix_d, operating_point=operating_point,
-                                         S=self.input_cost_block_matrix)
+                                         S=self.input_cost_block_matrix, L=self.input_linear_cost_block_matrix)
         return self.solver
 
     def print_result(self):
