@@ -227,7 +227,7 @@ if __name__ == "__main__":
         "network_name": "epa_networks/project_network/project_network.inp",
 
         # EPA SWMM engine step size [seconds]
-        "sim_type": SimType.PREISMANN,
+        "sim_type": SimType.EULER,
         "sim_step_size": 12.65,
 
         # Number of steps before the plotter plots anything
