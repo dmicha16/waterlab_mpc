@@ -227,11 +227,11 @@ if __name__ == "__main__":
         "network_name": "epa_networks/project_network/project_network.inp",
 
         # EPA SWMM engine step size [seconds]
-        "sim_type": SimType.LOCAL_MODEL,
+        "sim_type": SimType.PREISMANN,
         "sim_step_size": 12.65,
 
         # Number of steps before the plotter plots anything
-        "num_plot_steps": 150,
+        "num_plot_steps": 60,
 
         # These have to be the names of the pumps and tanks from EPA SWMM
         "pumps": ["FP1", "FP2", "FP3"],
