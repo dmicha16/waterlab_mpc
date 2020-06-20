@@ -23,15 +23,12 @@ Ap = ca.DM([[1, 0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 1.342957558, -1.623415116, 1.2],
             [0, 0, 0, 0, 0, 1.3, -1.623415116]])
 
-Ap = ca.DM([[1, 0, 0, 0, 0, 0, 0],
-                [0, -0.3429575580, 1.280457558, 0, 0, 0, 0],
-                [0, 1.342957558, -1.623415116, 1.280457558, 0, 0, 0],
-                [0, 0, 1.342957558, -1.623415116, 1.280457558, 0, 0],
-                [0, 0, 0, 1.342957558, -1.623415116, 1.280457558, 0],
-                [0, 0, 0, 0, 1.342957558, -10.58661802, 10.24366046],
-                [0, 0, 0, 0, 0, 10.30616046, -9.24366046]])
-
-Bp = ca.DM([[-2 / 5, 0, -2 / 5, 0], [3 / 2, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0],
+Bp = ca.DM([[-2 / 5, 0, -2 / 5, 0],
+            [3 / 2, 0, 0, 0],
+            [0, 0, 0, 0],
+            [0, 0, 0, 0],
+            [0, 0, 0, 0],
+            [0, 0, 0, 0],
             [0, -12 / 5, 0, -12 / 5]])
 Bp_d = ca.DM([2 / 5, 0, 0, 0, 0, 0, 0])
 
@@ -50,23 +47,46 @@ B_d = Bp_d * const_var + (np.random.rand(Bp_d.size1(), Bp_d.size2()) - 0.5) * ra
 Hp = 8
 Hu = Hp
 
-dist_magnitude = 0.001
-dist = ca.DM((np.random.rand(Hp * disturbances) +0) * dist_magnitude)
-dist = ca.DM.ones(Hp * disturbances)*dist_magnitude
+dist_magnitude = 0.01
+dist = ca.DM((np.random.rand(Hp * disturbances) + 0) * dist_magnitude)
+dist = ca.DM.ones(Hp * disturbances) * dist_magnitude
 initial_disturbance = ca.DM.zeros(disturbances)
 
-Q = ca.DM([[1, 0, 0], [0, 2, 0], [0, 0, 3]])
+Q = ca.DM([[1, 0, 0],
+           [0, 2, 0],
+           [0, 0, 3]])
 Qb = mpc.blockdiag(Q, Hp)
-R = ca.DM([[0.1, 0, 0], [0, 0.2, 0], [0, 0, 0.3]])
+R = ca.DM([[0.1, 0, 0],
+           [0, 0.2, 0],
+           [0, 0, 0.3]])
 Rb = mpc.blockdiag(R, Hu)
 Q = ca.DM(np.identity(7)) * 1
-Q[0,0] = 10
-R = ca.DM([[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 1000, 0], [0, 0, 0, 1000]])
+Q[0, 0] = 10
+R = ca.DM([[0.1, 0, 0, 0],
+           [0, 0.1, 0, 0],
+           [0, 0, 0, 0],
+           [0, 0, 0, 0]])
 
-x0 = ca.DM([[2], [0], [0], [0], [0], [0], [0]])
+S = ca.DM([[0, 0, 0, 0],
+           [0, 0, 0, 0],
+           [0, 0, 0, 0],
+           [0, 0, 0, 0]])
+
+L = ca.DM([[0, 0, 0, 0],
+           [0, 0, 0, 0],
+           [0, 0, 1, 0],
+           [0, 0, 0, 1]])
+
+x0 = ca.DM([[2],
+            [0],
+            [0],
+            [0],
+            [0],
+            [0],
+            [0]])
 u0 = ca.DM([0, 0, 0, 0])
 
-operating_point = ca.DM([0., -1.2305, 0., 0., 0., -3.6216, 4.8521])*1
+operating_point = ca.DM([0., -1.2305, 0., 0., 0., -3.6216, 4.8521]) * 0
 
 ref = ca.DM.ones(Hp * states, 1)
 for state in range(states):
@@ -78,19 +98,20 @@ lower_bounds_states = ca.DM.ones(states) * 0
 upper_bounds_input = ca.DM.ones(inputs) * 111
 upper_bounds_slew_rate = ca.DM.ones(inputs) * 100
 upper_bounds_states = ca.DM.ones(states) * 1000
-# lower_bounds_input = None
-# lower_bounds_slew_rate = None
-# lower_bounds_states = None
-# upper_bounds_input = None
-# upper_bounds_slew_rate = None
-# upper_bounds_states = None
+#lower_bounds_input = None
+lower_bounds_slew_rate = None
+lower_bounds_states = None
+upper_bounds_input = None
+upper_bounds_slew_rate = None
+upper_bounds_states = None
 #lower_bounds_states = operating_point -100
 
 mmpc = mpco.MpcObj(Ap, Bp, Hu, Hp, Q, R, ref=ref, initial_control_signal=u0, input_matrix_d=Bp_d,
                    lower_bounds_input=lower_bounds_input,
                    lower_bounds_slew_rate=lower_bounds_slew_rate, upper_bounds_slew_rate=upper_bounds_slew_rate,
                    upper_bounds_input=upper_bounds_input, lower_bounds_states=lower_bounds_states,
-                   upper_bounds_states=upper_bounds_states,operating_point=operating_point)
+                   upper_bounds_states=upper_bounds_states, operating_point=operating_point, input_cost=S,
+                   input_linear_cost=L)
 mmpc.step(x0, u0, ref, initial_disturbance, dist)
 
 mmpc.plot_progress({'drawU': 'U'})
@@ -111,7 +132,7 @@ for j in range(1, steps):
     # this model is instead of the EPA swmm
     u = u + mmpc.get_next_control_input_change()
 
-    x = A @ x + B @ u + B_d @ cum_dist
+    x = A @ x + B @ u + B_d @ cum_dist + operating_point
 
     if looper and j % step_size == 0:
         loop_in = input("press any key to step, or \'r\' to run all steps")
