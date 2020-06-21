@@ -322,7 +322,7 @@ class MpcObj:
                                          self.prediction_horizon,
                                          self.state_cost_block_matrix, self.input_change_cost_block_matrix,
                                          self.input_matrix_d, operating_point=operating_point,
-                                         S=self.input_cost_block_matrix, L=self.input_linear_cost_block_matrix)
+                                         S=self.input_cost_block_matrix)
         return self.solver
 
     def print_result(self):

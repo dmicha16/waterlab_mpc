@@ -62,18 +62,18 @@ out              0          FREE                        NO
 [STORAGE]
 ;;Name           Elev.    MaxDepth   InitDepth  Shape      Curve Name/Params            N/A      Fevap    Psi      Ksat     IMD     
 ;;-------------- -------- ---------- ----------- ---------- ---------------------------- -------- --------          -------- --------
-T1               0        3          0          FUNCTIONAL 150       0         0        0        0       
-T2               9        2          0          FUNCTIONAL 200       0         0        0        0       
+T1               0        3          0          FUNCTIONAL 0         0         150      0        0       
+T2               9        2          0          FUNCTIONAL 0         0         200      0        0       
 T3               0        1000       950        FUNCTIONAL 1000      0         0        0        0       
 
 [CONDUITS]
 ;;Name           From Node        To Node          Length     Roughness  InOffset   OutOffset  InitFlow   MaxFlow   
 ;;-------------- ---------------- ---------------- ---------- ---------- ---------- ---------- ---------- ----------
-P1               N1               N2               40         0.01       0          0          0          0         
-P2               N2               N3               40         0.01       0          0          0          0         
-P3               N3               N4               40         0.01       0          0          0          0         
-P4               N4               N5               40         0.01       0          0          0          0         
-P5               N5               T2               40         0.01       0          1          0          0         
+P1               N1               N2               400        0.01       0          0          0          0         
+P2               N2               N3               400        0.01       0          0          0          0         
+P3               N3               N4               400        0.01       0          0          0          0         
+P4               N4               N5               400        0.01       0          0          0          0         
+P5               N5               T2               400        0.01       0          1          0          0         
 
 [PUMPS]
 ;;Name           From Node        To Node          Pump Curve       Status   Sartup Shutoff 

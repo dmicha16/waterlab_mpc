@@ -1,7 +1,7 @@
 import casadi as ca
 
 
-def gen_mpc_solver(A, B, Hu, Hp, Q, R, B_d=None, S=None, L=None, operating_point=None):
+def gen_mpc_solver(A, B, Hu, Hp, Q, R, B_d=None, S=None, operating_point=None):
     """
     Consult at p55 in Jan M. book for better understanding as well as casadi documentation
         :param A:(mxm) Model dynamics matrix of type casadi.DM
@@ -18,9 +18,6 @@ def gen_mpc_solver(A, B, Hu, Hp, Q, R, B_d=None, S=None, L=None, operating_point
     # TODO: Fix cost on Inputs u - Weight matrix S
     if S is None:
         S = ca.DM.zeros(R.size1(), R.size2())
-
-    if L is None:
-        L = ca.DM.zeros(R.size1(), R.size2())
 
     # Useful dimensions
     number_of_states = A.size1()
@@ -79,13 +76,14 @@ def gen_mpc_solver(A, B, Hu, Hp, Q, R, B_d=None, S=None, L=None, operating_point
     error = predicted_states - ref  # e = (Z - T)
     quadratic_cost = error.T @ Q @ error \
                      + du.T @ R @ du \
-                     + U.T @ S @ U \
-                     + U.T @ L @ ca.DM.ones(U.size1(), U.size2())
+                     + U.T @ S @ ca.DM.ones(U.size1(), U.size2())
+                     #+ U.T @ S @ U
+                     # + ca.norm_1(U.T @ S)
     # Setup Solver
     # set print level: search for 'printLevel' in link
     # http://casadi.sourceforge.net/v3.1.0/api/internal/de/d94/qpoases__interface_8cpp_source.html
     # "tabular"; "none"; "low"; "medium"; "high"; "debug_iter";
-    opts = dict(printLevel='medium')
+    opts = dict(printLevel='low')
     quadratic_problem = {'x': du, 'p': input_variables, 'f': quadratic_cost, 'g': constraints}
     mpc_solver = ca.qpsol('mpc_solver', 'qpoases', quadratic_problem, opts)
     # print(quadratic_cost)
