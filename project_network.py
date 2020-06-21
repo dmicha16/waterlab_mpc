@@ -119,7 +119,8 @@ def run_simulation(simul_config, data_df, complete_sys_model, disturb_manager):
                                                              simul_config["junctions"],
                                                              data_df,
                                                              disturb_manager,
-                                                             simul_config["num_plot_steps"])
+                                                             simul_config["num_plot_steps"],
+                                                             simul_config["steps_between_plots"])
 
         elif simul_config["sim_type"] == SimType.PREISMANN:
             data_df = preismann_model.run_preismann_model_simulation(simul_config["sim_step_size"],
@@ -231,7 +232,7 @@ if __name__ == "__main__":
         "sim_step_size": 12.65,
 
         # Number of steps before the plotter plots anything
-        "num_plot_steps": 150,
+        "num_plot_steps": 0,
 
         # These have to be the names of the pumps and tanks from EPA SWMM
         "pumps": ["FP1", "FP2", "FP3"],
@@ -241,7 +242,7 @@ if __name__ == "__main__":
         # MPC related configuration
         "prediction_horizon": 80,
         "control_horizon": 50,
-        "steps_between_plots": 3,
+        "steps_between_plots": 10,
         "plot_mpc_steps": True
     }
 

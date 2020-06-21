@@ -193,7 +193,7 @@ def make_euler_mpc_model(state_space_model, prediction_horizon, control_horizon)
 
 
 def run_euler_model_simulation(time_step, complete_model, prediction_horizon, sim, pump_ids, tank_ids, junction_ids,
-                               network_df, disturb_manager, num_sim_steps):
+                               network_df, disturb_manager, num_sim_steps, steps_between_plots):
     pump1 = Links(sim)[pump_ids[0]]
     pump2 = Links(sim)[pump_ids[1]]
     tank1 = Nodes(sim)[tank_ids[0]]
@@ -268,16 +268,16 @@ def run_euler_model_simulation(time_step, complete_model, prediction_horizon, si
         network_df = network_df.append(network_elements, ignore_index=True)
 
         if num_sim_steps <= 0:
+            if idx % steps_between_plots == 0:
+                mpc_model.plot_progress(ignore_states={1,2,3,4,5}, options={'drawU': 'U'})
+                user_key_input = input("Press any key to step, or q to quit")
+                try:
+                    num_sim_steps = int(user_key_input)
+                except ValueError:
+                    pass
 
-            mpc_model.plot_progress(options={'drawU': 'U'})
-            user_key_input = input("Press any key to step, or q to quit")
-            try:
-                num_sim_steps = int(user_key_input)
-            except ValueError:
-                pass
-
-            if user_key_input == "q":
-                break
+                if user_key_input == "q":
+                    break
         else:
             print(num_sim_steps)
             num_sim_steps -= 1
