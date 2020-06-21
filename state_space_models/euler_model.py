@@ -6,8 +6,10 @@ from pyswmm import Simulation, Nodes, Links
 from enum import Enum
 
 import pandas as pd
+
 # Please remove from proper code
 number_sv = 2
+
 
 class PumpSetting(Enum):
     CLOSED = 0
@@ -22,7 +24,7 @@ def set_euler_initial_conditions():
     """
 
     x0 = ca.DM.zeros(7, 1)
-    u0 = ca.DM.zeros(4+number_sv, 1)
+    u0 = ca.DM.zeros(4 + number_sv, 1)
 
     return [x0, u0]
 
@@ -32,23 +34,23 @@ def set_euler_weight_matrices():
     Set the Q and R weight matrices for the Euler model
     :return: Q and R matrices
     """
-     
+
     # initially to ones to run the code
     # TODO: add proper Q and R matrices @Casper
     Q = ca.DM(np.identity(7)) * 1
     Q[0, 0] = 10
     Q[6, 6] = 10
 
-    R = ca.DM.zeros(4+number_sv, 4+number_sv)
+    R = ca.DM.zeros(4 + number_sv, 4 + number_sv)
     R[0, 0] = 1
     R[1, 1] = 10
 
-    S = ca.DM.zeros(4+number_sv, 4+number_sv)
+    S = ca.DM.zeros(4 + number_sv, 4 + number_sv)
     # Overflow cost
     S[2, 2] = 10000
     S[3, 3] = 10000
-    #Feasibility cost
-    for index in range(4, 4+number_sv):
+    # Feasibility cost
+    for index in range(4, 4 + number_sv):
         S[index, index] = 100000
 
     return [Q, R, S]
@@ -63,7 +65,7 @@ def set_euler_ref(prediction_horizon, num_states):
         """
 
     ref = ca.DM.ones(prediction_horizon * num_states, 1)
-    constant_ref = ca.DM([0, 0, 0, 0, 0, 0, 0])
+    constant_ref = ca.DM([0.1, 0, 0, 0, 0, 0, 0.1])
 
     for state in range(num_states):
         ref[state::num_states] = ref[state::num_states] * constant_ref[state]
@@ -80,25 +82,49 @@ def make_euler_model(simulation_type, pred_horizon):
     weight matrices.
     """
 
-    Ap = ca.DM([[1., 0., 0., 0., 0., 0., 0.], [0., 0.81536, 0.0028976, 0., 0., 0., 0.],
-                [0., 0.18464, 0.81246, 0.0028976, 0., 0., 0.], [0., 0., 0.18464, 0.81246, 0.0028976, 0., 0.],
-                [0., 0., 0., 0.18464, 0.81246, 0.0028976, 0.], [0., 0., 0., 0., 0.18464, 0.93962, 0.],
-                [0., 0., 0., 0., 0., 0.057484, 1.]])
+    #final euler model
+    Ap = ca.DM([[1., 0., 0., 0., 0., 0., 0.],
+                [0., 0.56108, 0.0068880, 0., 0., 0., 0.],
+                [0., 0.43892, 0.55419, 0.0068880, 0., 0., 0.],
+                [0., 0., 0.43892, 0.55419, 0.0068880, 0., 0.],
+                [0., 0., 0., 0.43892, 0.55419, 0.0068880, 0.],
+                [0., 0., 0., 0., 0.43892, 0.85646, 0.],
+                [0., 0., 0., 0., 0., 0.13665*2, 1.]])
+
+    # final euler model, Modified
+    # Ap = ca.DM([[1., 0., 0., 0., 0., 0., 0.],
+    #             [0., 0.56108, 0.0068880, 0., 0., 0., 0.],
+    #             [0., 0.43892, 0.55419, 0.0068880, 0., 0., 0.],
+    #             [0., 0., 0.43892, 0.55419, 0.0068880, 0., 0.],
+    #             [0., 0., 0., 0.43892, 0.55419, 0.0068880, 0.],
+    #             [0., 0., 0., 0., 0.43892, 0.55419, 0.],
+    #             [0., 0., 0., 0., 0., 0.13665*2.5, 1.]])
 
     Bp = ca.DM(
-        [[-0.08413333333, 0, -0.08413333333, 0], [0.03155000000, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0],
-         [0, 0, 0, 0], [0, -0.06310000000, 0, -0.06310000000]])
+        [[-1 / 5, 0, -1 / 5, 0],
+         [3 / 40, 0, 0, 0],
+         [0, 0, 0, 0],
+         [0, 0, 0, 0],
+         [0, 0, 0, 0],
+         [0, 0, 0, 0],
+         [0, -3 / 20, 0, -3 / 20]])
 
-    slack_columns = ca.DM.zeros(Bp.size1(),number_sv)
+    slack_columns = ca.DM.zeros(Bp.size1(), number_sv)
     slack_columns[5, 0] = 1
     slack_columns[6, 1] = 1
     Bp = ca.horzcat(Bp, slack_columns)
 
-    Bp_d = ca.DM([0.08413333333, 0, 0, 0, 0, 0, 0])
+    Bp_d = ca.DM([1/5, 0, 0, 0, 0, 0, 0])
 
     # ca.DM([0., -0.028882, 0., 0., 0., -0.10716, 0.13604])
     # We ignore the operating point until we can soften the constraints
-    operating_point = ca.DM([0., 0.062644, 0., 0., 0., -0.053638, -0.0090058]) * 1
+
+    #Final Euler model
+    operating_point = ca.DM([0., 0.14891, 0., 0., 0., -0.12750*1, -0.021408*1]) * 1
+
+    # Final Euler model Modified
+    # operating_point = ca.DM([0., 0.14891, 0., 0., 0., 0, 0]) * 1
+
     # Un-constraint
     lower_bounds_input = None
     lower_bounds_slew_rate = None
@@ -108,13 +134,13 @@ def make_euler_model(simulation_type, pred_horizon):
     upper_bounds_states = None
 
     # Actual constraints
-    lower_bounds_input = ca.DM.ones(4+number_sv,1) * 0
-    lower_bounds_slew_rate = ca.DM.ones(4+number_sv,1)*-ca.inf
+    lower_bounds_input = ca.DM.ones(4 + number_sv, 1) * 0
+    lower_bounds_slew_rate = ca.DM.ones(4 + number_sv, 1) * -ca.inf
     lower_bounds_states = ca.DM([0, 0, 0, 0, 0, 0, 0])
-    upper_bounds_input = ca.DM.ones(4+number_sv,1) *ca.inf
+    upper_bounds_input = ca.DM.ones(4 + number_sv, 1) * ca.inf
     upper_bounds_input[0] = 2
-    upper_bounds_input[1] = 2
-    upper_bounds_slew_rate = ca.DM.ones(4+number_sv,1)*ca.inf
+    upper_bounds_input[1] = 1
+    upper_bounds_slew_rate = ca.DM.ones(4 + number_sv, 1) * ca.inf
     upper_bounds_slew_rate[0] = 1
     upper_bounds_slew_rate[1] = 1
     upper_bounds_states = ca.DM([3, 1, 1, 1, 1, 1, 2])
@@ -269,7 +295,7 @@ def run_euler_model_simulation(time_step, complete_model, prediction_horizon, si
 
         if num_sim_steps <= 0:
             if idx % steps_between_plots == 0:
-                mpc_model.plot_progress(ignore_states={1,2,3,4,5}, options={'drawU': 'U'})
+                mpc_model.plot_progress(ignore_states={2, 3, 4}, options={'drawU': 'U'})
                 user_key_input = input("Press any key to step, or q to quit")
                 try:
                     num_sim_steps = int(user_key_input)
