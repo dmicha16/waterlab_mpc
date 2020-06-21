@@ -231,7 +231,7 @@ if __name__ == "__main__":
         "sim_step_size": 12.65,
 
         # Number of steps before the plotter plots anything
-        "num_plot_steps": 60,
+        "num_plot_steps": 150,
 
         # These have to be the names of the pumps and tanks from EPA SWMM
         "pumps": ["FP1", "FP2", "FP3"],
@@ -239,8 +239,8 @@ if __name__ == "__main__":
         "junctions": ["N1", "N1", "N2", "N3", "N4", "N5"],
 
         # MPC related configuration
-        "prediction_horizon": 2,
-        "control_horizon": 2,
+        "prediction_horizon": 80,
+        "control_horizon": 50,
         "steps_between_plots": 3,
         "plot_mpc_steps": True
     }
