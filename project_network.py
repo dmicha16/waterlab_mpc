@@ -228,8 +228,8 @@ if __name__ == "__main__":
         "network_name": "epa_networks/project_network/project_network.inp",
 
         # EPA SWMM engine step size [seconds]
-        "sim_type": SimType.EULER,
-        "sim_step_size": 12.65,
+        "sim_type": SimType.LOCAL_MODEL,
+        "sim_step_size": 30,
 
         # Number of steps before the plotter plots anything
         "num_plot_steps": 0,
@@ -254,7 +254,7 @@ if __name__ == "__main__":
         "disturbance_data_name": "data/disturbance_data/hour_poop_rain.csv",
         "use_rain": True,
         "use_poop": True,
-        "rain_gain": 5.6,
+        "rain_gain": 10.6,
         "poop_gain": 1.12,
         # "use_random": False
     }

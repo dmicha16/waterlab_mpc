@@ -71,12 +71,18 @@ def gen_mpc_solver(A, B, Hu, Hp, Q, R, B_d=None, S=None, operating_point=None):
     U = U + ca.repmat(u_prev, Hu, 1)
     constraints = ca.vertcat(predicted_states, U)
 
+    # construct IU fom U
+    IU = ca.SX.ones(du.size1())
+    for i in range(0, number_of_inputs):
+        IU[i::number_of_inputs] = ca.cumsum(U[i::number_of_inputs])
+
+    constraints = ca.vertcat(predicted_states, U)
     # Cost function:
     # Cost = (Z - T)' * Q * (Z - T) + dU' * R * dU
     error = predicted_states - ref  # e = (Z - T)
     quadratic_cost = error.T @ Q @ error \
                      + du.T @ R @ du \
-                     + U.T @ S @ ca.DM.ones(U.size1(), U.size2())
+                     + IU.T @ S @ ca.DM.ones(U.size1(), U.size2())
                      #+ U.T @ S @ U
                      # + ca.norm_1(U.T @ S)
     # Setup Solver
